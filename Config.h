@@ -16,14 +16,16 @@
   Hardware pins
 */
 static const uint8_t PIN_FAN = D1;
+static const uint8_t PIN_SOIL_SENSOR = D5;
 
 /*
   Output polarity
 
-  true  = HIGH turns fan ON
-  false = LOW turns fan ON
+  true  = HIGH turns ON
+  false = LOW turns ON
 */
 static const bool FAN_ACTIVE_HIGH = true;
+static const bool SOIL_SENSOR_ACTIVE_HIGH = false;
 
 /*
   For the example fan:

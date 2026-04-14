@@ -60,6 +60,11 @@ struct SystemState {
     Lets you stop the cycle from main or from future logic.
   */
   bool fanCycleEnabled = true;
+
+  /*
+    Soil moisture sensor
+  */
+  bool soilDry = false;
 };
 
 #endif

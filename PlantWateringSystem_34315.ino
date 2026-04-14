@@ -2,6 +2,7 @@
 #include "SystemState.h"
 #include "Logic.h"
 #include "FanController.h"
+#include "SoilMoistureSensor.h"
 
 /*
   MAIN APPLICATION
@@ -21,6 +22,7 @@
 
 SystemState state;
 FanController fan(PIN_FAN, FAN_ACTIVE_HIGH);
+SoilMoistureSensor soilSensor(PIN_SOIL_SENSOR, SOIL_SENSOR_ACTIVE_HIGH);
 
 unsigned long lastPrintMs = 0;
 
@@ -34,6 +36,8 @@ void setup() {
   state.nowMs = millis();
 
   fan.begin();
+  soilSensor.begin();
+
   initializeLogic(state);
 }
 
@@ -42,6 +46,16 @@ void loop() {
     One shared time snapshot for this loop iteration.
   */
   state.nowMs = millis();
+
+  /*
+    Update sensor values
+  */
+  soilSensor.update();
+
+  /*
+    Copy sensor values into shared state
+  */
+  state.soilDry = soilSensor.isDry();
 
   /*
     Update decision logic.
@@ -70,5 +84,13 @@ void loop() {
   Serial.print(state.fanCycleIsOnPhase ? "ON-PHASE" : "OFF-PHASE");
 
   Serial.print(" | Command: ");
-  Serial.println(state.fanCommand ? "ON" : "OFF");
+  Serial.print(state.fanCommand ? "ON" : "OFF");
+
+  Serial.print(" | Soil raw data: ");
+  Serial.print(soilSensor.getRawValue());
+
+  Serial.print(" | Soil dry: ");
+  Serial.print(state.soilDry ? "YES" : "NO");
+
+  Serial.println();
 }
