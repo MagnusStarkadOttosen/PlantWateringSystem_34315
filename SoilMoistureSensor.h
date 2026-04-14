@@ -5,7 +5,7 @@
 
 class SoilMoistureSensor {
 public:
-  SoilMoistureSensor(uint8_t signalPin, bool activeLow);
+  SoilMoistureSensor(uint8_t signalPin, uint8_t powerPin, bool activeLow);
 
   /*
     begin()
@@ -19,7 +19,7 @@ public:
     --------
     Read the sensor and store latest interpreted state.
   */
-  void update();
+  void update(unsigned long nowMs);
 
   /*
     isDry()
@@ -35,11 +35,24 @@ public:
   */
   int getRawValue() const;
 
+  /*
+    isPowered()
+    -----------
+    Returns if the sensor is recieving power
+  */
+  bool isPowered() const;
+
 private:
   uint8_t _signalPin;
+  uint8_t _powerPin;
   bool _activeLow;
+
   bool _isDry;
   int _rawValue;
+  
+  bool _isPowered;
+  unsigned long _lastReadMs;
+  unsigned long _powerOnMs;
 };
 
 #endif

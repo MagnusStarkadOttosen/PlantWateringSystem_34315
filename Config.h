@@ -17,6 +17,7 @@
 */
 static const uint8_t PIN_FAN = D1;
 static const uint8_t PIN_SOIL_SENSOR = D5;
+static const uint8_t PIN_SOIL_SENSOR_POWER = D4;
 
 /*
   Output polarity
@@ -34,6 +35,19 @@ static const bool SOIL_SENSOR_ACTIVE_HIGH = false;
 */
 static const unsigned long FAN_ON_DURATION_MS = 3000;
 static const unsigned long FAN_OFF_DURATION_MS = 10000;
+
+/*
+  Soil sensor timing
+
+  SOIL_SENSOR_READ_INTERVAL_MS:
+    how often we take a new reading
+
+  SOIL_SENSOR_POWER_SETTLE_MS:
+    how long to wait after powering the module
+    before reading the sensor
+*/
+static const unsigned long SOIL_SENSOR_READ_INTERVAL_MS = 10000;
+static const unsigned long SOIL_SENSOR_POWER_SETTLE_MS = 1000;
 
 /*
   Serial print interval for debugging.

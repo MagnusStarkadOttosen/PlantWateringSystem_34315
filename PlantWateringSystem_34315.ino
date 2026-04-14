@@ -22,7 +22,7 @@
 
 SystemState state;
 FanController fan(PIN_FAN, FAN_ACTIVE_HIGH);
-SoilMoistureSensor soilSensor(PIN_SOIL_SENSOR, SOIL_SENSOR_ACTIVE_HIGH);
+SoilMoistureSensor soilSensor(PIN_SOIL_SENSOR, PIN_SOIL_SENSOR_POWER, SOIL_SENSOR_ACTIVE_HIGH);
 
 unsigned long lastPrintMs = 0;
 
@@ -50,7 +50,7 @@ void loop() {
   /*
     Update sensor values
   */
-  soilSensor.update();
+  soilSensor.update(state.nowMs);
 
   /*
     Copy sensor values into shared state
@@ -85,6 +85,9 @@ void loop() {
 
   Serial.print(" | Command: ");
   Serial.print(state.fanCommand ? "ON" : "OFF");
+
+  Serial.print(" | Soil sensor power: ");
+  Serial.print(soilSensor.isPowered() ? "ON" : "OFF");
 
   Serial.print(" | Soil raw data: ");
   Serial.print(soilSensor.getRawValue());
