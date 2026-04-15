@@ -18,6 +18,8 @@
 static const uint8_t PIN_FAN = D1;
 static const uint8_t PIN_SOIL_SENSOR = D5;
 static const uint8_t PIN_SOIL_SENSOR_POWER = D4;
+static const uint8_t PIN_WATER_SENSOR = A0;
+static const uint8_t PIN_WATER_SENSOR_POWER = D2;
 
 /*
   Output polarity
