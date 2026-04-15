@@ -18,6 +18,8 @@
 static const uint8_t PIN_FAN = D1;
 static const uint8_t PIN_SOIL_SENSOR = D5;
 static const uint8_t PIN_SOIL_SENSOR_POWER = D4;
+static const uint8_t PIN_WATER_SENSOR = A0;
+static const uint8_t PIN_WATER_SENSOR_POWER = D2;
 
 /*
   Output polarity
@@ -48,6 +50,8 @@ static const unsigned long FAN_OFF_DURATION_MS = 10000;
 */
 static const unsigned long SOIL_SENSOR_READ_INTERVAL_MS = 10000;
 static const unsigned long SOIL_SENSOR_POWER_SETTLE_MS = 1000;
+static const unsigned long WATER_SENSOR_READ_INTERVAL_MS = 10000;
+static const unsigned long WATER_SENSOR_POWER_SETTLE_MS = 1000;
 
 /*
   Serial print interval for debugging.
