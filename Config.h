@@ -61,6 +61,7 @@ static const unsigned long SERIAL_PRINT_INTERVAL_MS = 500;
 /*
   JSON data size
 */
+
 static const unsigned long JSON_SIZE = 192;
 
 /*

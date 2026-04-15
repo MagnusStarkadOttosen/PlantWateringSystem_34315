@@ -1,8 +1,10 @@
 #include "Config.h"
+#include "Secrets.h"
 #include "SystemState.h"
 #include "Logic.h"
 #include "FanController.h"
 #include "SoilMoistureSensor.h"
+#include "ESP8266WiFi.h"
 
 /*
   MAIN APPLICATION
@@ -19,6 +21,7 @@
   If this file starts containing hardware-specific hacks
   or business logic everywhere, the architecture is breaking.
 */
+WiFiClient client;
 
 SystemState state;
 FanController fan(PIN_FAN, FAN_ACTIVE_HIGH);
@@ -28,6 +31,25 @@ unsigned long lastPrintMs = 0;
 
 void setup() {
   Serial.begin(115200);
+
+  // Connecting to WiFi network
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(WIFI_SSID);
+  
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    if (state.nowMs - lastPrintMs < SERIAL_PRINT_INTERVAL_MS) {
+      return;
+    }
+
+    lastPrintMs = state.nowMs;
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");
 
   /*
     Snapshot current time before initializing logic.
@@ -61,7 +83,7 @@ void loop() {
     Update decision logic.
     This writes desired outputs into SystemState.
   */
-  updateLogic(state);
+  updateLogic(state, client);
 
   /*
     Apply desired logic output to hardware.
