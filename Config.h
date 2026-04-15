@@ -54,4 +54,15 @@ static const unsigned long SOIL_SENSOR_POWER_SETTLE_MS = 1000;
 */
 static const unsigned long SERIAL_PRINT_INTERVAL_MS = 500;
 
+/*
+  JSON data size
+*/
+
+static const unsigned long JSON_SIZE = 192;
+
+/*
+  Thingspeak update interval  
+*/
+static const int postingInterval = 20 * 1000; // post data every 20 seconds
+
 #endif
