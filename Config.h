@@ -50,6 +50,8 @@ static const unsigned long FAN_OFF_DURATION_MS = 10000;
 */
 static const unsigned long SOIL_SENSOR_READ_INTERVAL_MS = 10000;
 static const unsigned long SOIL_SENSOR_POWER_SETTLE_MS = 1000;
+static const unsigned long WATER_SENSOR_READ_INTERVAL_MS = 10000;
+static const unsigned long WATER_SENSOR_POWER_SETTLE_MS = 1000;
 
 /*
   Serial print interval for debugging.
