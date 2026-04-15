@@ -35,7 +35,7 @@ struct SystemState {
     true  => fan should be ON
     false => fan should be OFF
   */
-  bool fanCommand = false;
+  bool fanActive = false;
 
   /*
     Timing memory for the fan cycle logic.
@@ -65,6 +65,13 @@ struct SystemState {
     Soil moisture sensor
   */
   bool soilDry = false;
+
+  /*
+    Pump control
+  */
+  bool pumpEnabled = true;
+  uint32_t pumpStartTime = 0;
+  bool pumpActive = false;
 };
 
 #endif

@@ -1,4 +1,4 @@
-#include "FanController.h"
+#include "MotorController.h"
 
 /*
   Constructor
@@ -6,24 +6,24 @@
   Store config only.
   No hardware access here.
 */
-FanController::FanController(uint8_t controlPin, bool activeHigh)
+MotorController::MotorController(uint8_t controlPin, bool activeHigh)
   : _controlPin(controlPin),
     _activeHigh(activeHigh),
     _isOn(false) {
 }
 
-void FanController::begin() {
+void MotorController::begin() {
   pinMode(_controlPin, OUTPUT);
 
   /*
     Safe startup:
-    fan must start OFF unless the main application says otherwise.
+    motor must start OFF unless the main application says otherwise.
   */
   applyPhysicalOutput(false);
   _isOn = false;
 }
 
-void FanController::setOn(bool on) {
+void MotorController::setOn(bool on) {
   /*
     Small guard:
     if requested state is already active, do nothing.
@@ -40,13 +40,13 @@ void FanController::setOn(bool on) {
   _isOn = on;
 }
 
-bool FanController::isOn() const {
+bool MotorController::isOn() const {
   return _isOn;
 }
 
-void FanController::applyPhysicalOutput(bool on) {
+void MotorController::applyPhysicalOutput(bool on) {
   /*
-    Translate logical fan state into actual output level.
+    Translate logical motor state into actual output level.
 
     activeHigh = true:
       ON  -> HIGH

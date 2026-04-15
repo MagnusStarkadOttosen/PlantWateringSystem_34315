@@ -1,10 +1,11 @@
 #include "SoilMoistureSensor.h"
 #include "Config.h"
 
-SoilMoistureSensor::SoilMoistureSensor(uint8_t signalPin, uint8_t powerPin, bool activeLow)
+SoilMoistureSensor::SoilMoistureSensor(uint8_t signalPin, uint8_t powerPin, bool signalActiveLow, bool powerActiveHigh)
   : _signalPin(signalPin),
     _powerPin(powerPin),
-    _activeLow(activeLow),
+    _signalActiveLow(signalActiveLow),
+    _powerActiveHigh(powerActiveHigh),
     _isDry(false),
     _rawValue(HIGH),
     _isPowered(false),
@@ -16,7 +17,7 @@ void SoilMoistureSensor::begin() {
   pinMode(_signalPin, INPUT);
   pinMode(_powerPin, OUTPUT);
 
-  digitalWrite(_powerPin, LOW);
+  digitalWrite(_powerPin, _powerActiveHigh ? LOW : HIGH);
   _isPowered = false;
 }
 
@@ -30,7 +31,7 @@ void SoilMoistureSensor::update(unsigned long nowMs) {
       return;
     }
 
-    digitalWrite(_powerPin, HIGH);
+    digitalWrite(_powerPin, _powerActiveHigh ? HIGH : LOW);
     _isPowered = true;
     _powerOnMs = nowMs;
     return;
@@ -50,13 +51,13 @@ void SoilMoistureSensor::update(unsigned long nowMs) {
   */
   _rawValue = digitalRead(_signalPin);
 
-  if (_activeLow) {
+  if (_signalActiveLow) {
     _isDry = (_rawValue == LOW);
   } else {
     _isDry = (_rawValue == HIGH);
   }
 
-  digitalWrite(_powerPin, LOW);
+  digitalWrite(_powerPin, _powerActiveHigh ? LOW : HIGH);
   _isPowered = false;
   _lastReadMs = nowMs;
 }
