@@ -1,5 +1,8 @@
 #include "Logic.h"
 #include "Config.h"
+#include "Secrets.h"
+#include "ArduinoJson.h"
+#include "ThingSpeak.h"
 
 /*
   INTERNAL HELPER FUNCTIONS
@@ -12,6 +15,9 @@
 static void updateFanLogic(SystemState& state);
 static void updateWateringLogic(SystemState& state);
 static void applySafetyOverrides(SystemState& state);
+static void updateWebserver(SystemState& state, WiFiClient& client);
+static void generateJSON(StaticJsonDocument<JSON_SIZE>& data, SystemState& state);
+static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& client);
 
 /*
   initializeLogic()
@@ -53,10 +59,11 @@ void initializeLogic(SystemState& state) {
   1. compute normal behavior
   2. apply safety overrides last
 */
-void updateLogic(SystemState& state) {
+void updateLogic(SystemState& state, WiFiClient& client) {
   updateFanLogic(state);
   updateWateringLogic(state);
   applySafetyOverrides(state);
+  updateWebserver(state, client);
 }
 
 /*
@@ -178,4 +185,95 @@ static void applySafetyOverrides(SystemState& state) {
     }
   */
   (void)state;
+}
+
+/*
+  updateWebserver()
+  ----------------
+  Update the webserver with the latest state.
+*/
+static unsigned long lastPrintMs = 0;
+
+static void updateWebserver(SystemState& state, WiFiClient& client) {
+  StaticJsonDocument<JSON_SIZE> data;
+
+  generateJSON(data, state);
+
+  sendToThingspeak(data, client);
+
+  /*
+    Debug print guard.
+  */
+  if (state.nowMs - lastPrintMs < SERIAL_PRINT_INTERVAL_MS) {
+    return;
+  }
+
+  lastPrintMs = state.nowMs;
+  /* This is not needed for Thingspeak, but will be if we deccide on doing it with a real webserver.
+
+  serializeJson(data, Serial);
+  Serial.println();
+  */
+}
+
+/*
+  generateJSON()
+  --------------
+  Generate JSON data from the latest state.
+*/
+
+
+static void generateJSON(StaticJsonDocument<JSON_SIZE>& data, SystemState& state) {
+  data["nowMs"] = state.nowMs; // 12345
+  data["fanCommand"] = state.fanCommand; // false
+  data["fanPhaseStartMs"] = state.fanPhaseStartMs; // 12345
+  data["fanCycleIsOnPhase"] = state.fanCycleIsOnPhase; // false
+  data["fanCycleEnabled"] = state.fanCycleEnabled; // false
+  data["soilDry"] = state.soilDry; // false
+}
+
+/*
+  sendToThingspeak()
+  --------------
+  Send data to Thingspeak.
+*/
+
+static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& client) {
+
+  unsigned long channelID = THINGSPEAK_CHANNEL_ID; // Thingspeak channel
+  const char * myWriteAPIKey = THINGSPEAK_API_KEY; // API key
+  const char* server = "api.thingspeak.com";
+
+    ThingSpeak.begin(client);
+  if (client.connect(server, 80)) {
+    
+    // Measure Signal Strength (RSSI) of Wi-Fi connection
+    long rssi = WiFi.RSSI();
+
+    Serial.print("RSSI: ");
+    Serial.println(rssi); 
+
+
+    ThingSpeak.setField(4,rssi);
+
+    // Fetch values.
+    float nowMs = data["nowMs"];
+    bool fanCommand = data["fanCommand"];
+    float fanPhaseStartMs = data["fanPhaseStartMs"];
+    bool fanCycleIsOnPhase = data["fanCycleIsOnPhase"];
+    bool fanCycleEnabled = data["fanCycleEnabled"];
+    bool soilDry = data["soilDry"];
+
+    // Set thingspeak fields
+    ThingSpeak.setField(1, nowMs);
+    ThingSpeak.setField(2, fanCommand);
+    ThingSpeak.setField(3, fanPhaseStartMs);
+    ThingSpeak.setField(4, fanCycleIsOnPhase);
+    ThingSpeak.setField(5, fanCycleEnabled);
+    ThingSpeak.setField(6, soilDry);
+  
+    // Write to thingspeak
+    ThingSpeak.writeFields(channelID, myWriteAPIKey);
+  }
+    client.stop();
 }
