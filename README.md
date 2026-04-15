@@ -55,10 +55,8 @@ PlantWateringSystem/
 ├── WaterLevelSensor.cpp
 ├── ClimateSensor.h
 ├── ClimateSensor.cpp
-├── PumpController.h
-├── PumpController.cpp
-├── FanController.h
-├── FanController.cpp
+├── MotorController.h
+├── MotorController.cpp
 └── README.md
 ```
 

@@ -1,7 +1,7 @@
 #include "Config.h"
 #include "SystemState.h"
 #include "Logic.h"
-#include "FanController.h"
+#include "MotorController.h"
 #include "SoilMoistureSensor.h"
 
 /*
@@ -21,10 +21,21 @@
 */
 
 SystemState state;
-FanController fan(PIN_FAN, FAN_ACTIVE_HIGH);
-SoilMoistureSensor soilSensor(PIN_SOIL_SENSOR, PIN_SOIL_SENSOR_POWER, SOIL_SENSOR_ACTIVE_HIGH);
+MotorController fan(PIN_FAN, FAN_ACTIVE_HIGH);
+MotorController pump(PIN_PUMP, PUMP_ACTIVE_HIGH);
+SoilMoistureSensor soilSensor(PIN_SOIL_SENSOR, PIN_SOIL_SENSOR_POWER, SOIL_SENSOR_SIGNAL_ACTIVE_LOW, SOIL_SENSOR_POWER_ACTIVE_HIGH);
 
 unsigned long lastPrintMs = 0;
+unsigned long loopCounter = 0;
+unsigned long loopsPerSecond = 0;
+
+static const char* onOff(bool value) {
+  return value ? "ON " : "OFF";
+}
+
+static const char* yesNo(bool value) {
+  return value ? "YES" : "NO ";
+}
 
 void setup() {
   Serial.begin(115200);
@@ -36,12 +47,14 @@ void setup() {
   state.nowMs = millis();
 
   fan.begin();
+  pump.begin();
   soilSensor.begin();
 
   initializeLogic(state);
 }
 
 void loop() {
+  loopCounter++;
   /*
     One shared time snapshot for this loop iteration.
   */
@@ -66,7 +79,8 @@ void loop() {
   /*
     Apply desired logic output to hardware.
   */
-  fan.setOn(state.fanCommand);
+  fan.setOn(state.fanActive);
+  pump.setOn(state.pumpActive);
 
   /*
     Debug print guard.
@@ -75,25 +89,44 @@ void loop() {
     return;
   }
 
+  loopsPerSecond = loopCounter * (1000/SERIAL_PRINT_INTERVAL_MS);
+  loopCounter = 0;
   lastPrintMs = state.nowMs;
 
-  Serial.print("Cycle enabled: ");
-  Serial.print(state.fanCycleEnabled ? "YES" : "NO");
+  Serial.print("[");
+  Serial.print(loopsPerSecond);
+  Serial.print(" UPS] ");
 
-  Serial.print(" | Phase: ");
-  Serial.print(state.fanCycleIsOnPhase ? "ON-PHASE" : "OFF-PHASE");
+  Serial.print("Fan:");
+  Serial.print(onOff(state.fanActive));
+  Serial.print("  ");
 
-  Serial.print(" | Command: ");
-  Serial.print(state.fanCommand ? "ON" : "OFF");
+  Serial.print("SoilPower:");
+  Serial.print(onOff(soilSensor.isPowered()));
+  Serial.print("  ");
 
-  Serial.print(" | Soil sensor power: ");
-  Serial.print(soilSensor.isPowered() ? "ON" : "OFF");
+  Serial.print("SoilDry:");
+  Serial.print(yesNo(state.soilDry));
+  Serial.print("  ");
 
-  Serial.print(" | Soil raw data: ");
-  Serial.print(soilSensor.getRawValue());
+  Serial.print("Pump:");
+  Serial.print(onOff(state.pumpActive));
+  Serial.print("  ");
 
-  Serial.print(" | Soil dry: ");
-  Serial.print(state.soilDry ? "YES" : "NO");
+  Serial.print("SoilRaw:");
+  Serial.print(soilSensor.getRawValue() == HIGH ? "HIGH" : "LOW ");
+  Serial.print("  ");
+
+  Serial.print("PumpTimer:");
+  if (state.pumpActive) {
+    unsigned long elapsedMs = state.nowMs - state.pumpStartTime;
+    Serial.print(elapsedMs);
+    Serial.print(" / ");
+    Serial.print(PUMP_ON_DURATION_MS);
+    Serial.print(" ms");
+  } else {
+    Serial.print("-        ");
+  }
 
   Serial.println();
 }

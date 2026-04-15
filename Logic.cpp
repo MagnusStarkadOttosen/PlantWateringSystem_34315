@@ -30,15 +30,14 @@ void initializeLogic(SystemState& state) {
   state.fanCycleEnabled = true;
   state.fanCycleIsOnPhase = true;
   state.fanPhaseStartMs = state.nowMs;
-  state.fanCommand = true;
+  state.fanActive = true;
 
   /*
     Pump defaults.
     Doesn't exist yet.
   */
-  // state.pumpCommand = false;
-  // state.pumpCycleEnabled = true;
-  // state.pumpPhaseStartMs = state.nowMs;
+  state.pumpActive = false;
+  state.pumpEnabled = true;
 }
 
 /*
@@ -77,7 +76,7 @@ static void updateFanLogic(SystemState& state) {
     If fan cycling is disabled, fan should be OFF.
   */
   if (!state.fanCycleEnabled) {
-    state.fanCommand = false;
+    state.fanActive = false;
     return;
   }
 
@@ -87,7 +86,7 @@ static void updateFanLogic(SystemState& state) {
   */
   if (state.fanCycleIsOnPhase &&
       (state.nowMs - state.fanPhaseStartMs < FAN_ON_DURATION_MS)) {
-    state.fanCommand = true;
+    state.fanActive = true;
     return;
   }
 
@@ -97,7 +96,7 @@ static void updateFanLogic(SystemState& state) {
   */
   if (!state.fanCycleIsOnPhase &&
       (state.nowMs - state.fanPhaseStartMs < FAN_OFF_DURATION_MS)) {
-    state.fanCommand = false;
+    state.fanActive = false;
     return;
   }
 
@@ -107,7 +106,7 @@ static void updateFanLogic(SystemState& state) {
   */
   state.fanCycleIsOnPhase = !state.fanCycleIsOnPhase;
   state.fanPhaseStartMs = state.nowMs;
-  state.fanCommand = state.fanCycleIsOnPhase;
+  state.fanActive = state.fanCycleIsOnPhase;
 }
 
 /*
@@ -118,33 +117,31 @@ static void updateFanLogic(SystemState& state) {
   Right now this is just a placeholder so the architecture is ready.
 */
 static void updateWateringLogic(SystemState& state) {
+  if (!state.pumpEnabled) {
+    state.pumpActive = false;
+    return;
+  }
   /*
-    Placeholder version:
-    force pump OFF until real watering logic is implemented.
+  if (state.waterTankLow) {
+    state.pumpActive = false;
+    return;
+  }
   */
-  // state.pumpCommand = false;
+  if (state.soilDry && !state.pumpActive) {
+    state.pumpActive = true;
+    state.pumpStartTime = state.nowMs;
+  }
 
-  /*
-    Example structure for later:
-
-    if (!state.wateringEnabled) {
-      state.pumpCommand = false;
-      return;
+  if(state.pumpActive) {
+    if (state.nowMs - state.pumpStartTime >= PUMP_ON_DURATION_MS) {
+      state.pumpActive = false;
+    } else {
+      state.pumpActive = true;
     }
+    return;
+  }
 
-    if (state.waterTankLow) {
-      state.pumpCommand = false;
-      return;
-    }
-
-    if (state.soilPercent >= SOIL_DRY_THRESHOLD_PERCENT) {
-      state.pumpCommand = false;
-      return;
-    }
-
-    state.pumpCommand = true;
-  */
-  (void)state;
+  state.pumpActive = false;
 }
 
 /*

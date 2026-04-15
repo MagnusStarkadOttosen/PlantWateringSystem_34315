@@ -1,13 +1,13 @@
-#ifndef FAN_CONTROLLER_H
-#define FAN_CONTROLLER_H
+#ifndef MOTOR_CONTROLLER_H
+#define MOTOR_CONTROLLER_H
 
 #include <Arduino.h>
 
 /*
-  FanController
+  MotorController
   =============
   PURPOSE:
-  Hardware-only control of the fan output.
+  Hardware-only control of the motor output.
 
   IMPORTANT:
   This module does NOT decide timing.
@@ -16,11 +16,11 @@
 
   It only:
   - initializes the output pin
-  - turns the fan on or off
+  - turns the motor on or off
   - remembers current output state
 */
 
-class FanController {
+class MotorController {
 public:
   /*
     Constructor
@@ -32,7 +32,7 @@ public:
       true  => HIGH means ON
       false => LOW means ON
   */
-  FanController(uint8_t controlPin, bool activeHigh);
+  MotorController(uint8_t controlPin, bool activeHigh);
 
   /*
     begin()
@@ -44,7 +44,7 @@ public:
   /*
     setOn()
     -------
-    Apply desired fan state to hardware.
+    Apply desired motor state to hardware.
   */
   void setOn(bool on);
 

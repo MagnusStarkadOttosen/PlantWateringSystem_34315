@@ -5,7 +5,7 @@
 
 class SoilMoistureSensor {
 public:
-  SoilMoistureSensor(uint8_t signalPin, uint8_t powerPin, bool activeLow);
+  SoilMoistureSensor(uint8_t signalPin, uint8_t powerPin, bool signalActiveLow, bool powerActiveHigh);
 
   /*
     begin()
@@ -45,7 +45,8 @@ public:
 private:
   uint8_t _signalPin;
   uint8_t _powerPin;
-  bool _activeLow;
+  bool _signalActiveLow;
+  bool _powerActiveHigh;
 
   bool _isDry;
   int _rawValue;
