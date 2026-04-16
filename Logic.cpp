@@ -121,12 +121,12 @@ static void updateWateringLogic(SystemState& state) {
     state.pumpActive = false;
     return;
   }
-  /*
-  if (state.waterTankLow) {
+  
+  if (state.isEmpty) {
     state.pumpActive = false;
     return;
   }
-  */
+  
   if (state.soilDry && !state.pumpActive) {
     state.pumpActive = true;
     state.pumpStartTime = state.nowMs;

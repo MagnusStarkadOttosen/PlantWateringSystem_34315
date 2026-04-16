@@ -3,6 +3,7 @@
 #include "Logic.h"
 #include "MotorController.h"
 #include "SoilMoistureSensor.h"
+#include "WaterLevelSensor.h"
 
 /*
   MAIN APPLICATION
@@ -24,6 +25,7 @@ SystemState state;
 MotorController fan(PIN_FAN, FAN_ACTIVE_HIGH);
 MotorController pump(PIN_PUMP, PUMP_ACTIVE_HIGH);
 SoilMoistureSensor soilSensor(PIN_SOIL_SENSOR, PIN_SOIL_SENSOR_POWER, SOIL_SENSOR_SIGNAL_ACTIVE_LOW, SOIL_SENSOR_POWER_ACTIVE_HIGH);
+WaterLevelSensor waterLevelSensor(PIN_WATER_SENSOR, PIN_WATER_SENSOR_POWER, SOIL_SENSOR_SIGNAL_ACTIVE_LOW);
 
 unsigned long lastPrintMs = 0;
 unsigned long loopCounter = 0;
@@ -69,6 +71,7 @@ void loop() {
     Copy sensor values into shared state
   */
   state.soilDry = soilSensor.isDry();
+  state.isEmpty = waterLevelSensor.isEmpty();
 
   /*
     Update decision logic.
