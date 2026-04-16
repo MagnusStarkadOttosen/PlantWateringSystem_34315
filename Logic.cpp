@@ -1,8 +1,8 @@
 #include "Logic.h"
 #include "Config.h"
 #include "Secrets.h"
-#include "ArduinoJson.h"
-#include "ThingSpeak.h"
+#include "ArduinoJson.h" // ArduinoJson by Benoit Blanchon
+#include "ThingSpeak.h" // Thingspeak by MathWorks
 
 /*
   INTERNAL HELPER FUNCTIONS
