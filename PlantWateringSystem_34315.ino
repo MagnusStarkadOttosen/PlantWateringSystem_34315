@@ -4,6 +4,7 @@
 #include "MotorController.h"
 #include "SoilMoistureSensor.h"
 #include "WaterLevelSensor.h"
+#include "DisplayController.h"
 
 /*
   MAIN APPLICATION
@@ -53,6 +54,7 @@ void setup() {
   soilSensor.begin();
 
   initializeLogic(state);
+  initDisplay();
 }
 
 void loop() {
@@ -84,6 +86,11 @@ void loop() {
   */
   fan.setOn(state.fanActive);
   pump.setOn(state.pumpActive);
+
+   /*
+    Updates LCD Display
+  */
+  updateDisplay(state);
 
   /*
     Debug print guard.
