@@ -18,6 +18,7 @@ static void applySafetyOverrides(SystemState& state);
 static void updateWebserver(SystemState& state, WiFiClient& client);
 static void generateJSON(StaticJsonDocument<JSON_SIZE>& data, SystemState& state);
 static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& client);
+static void sendToWebserver(char* jsonBuffer[JSON_SIZE], WiFiClient& client);
 
 /*
   initializeLogic()
@@ -208,8 +209,11 @@ static void updateWebserver(SystemState& state, WiFiClient& client) {
   lastPrintMs = state.nowMs;
   /* This is not needed for Thingspeak, but will be if we deccide on doing it with a real webserver.
 
-  serializeJson(data, Serial);
-  Serial.println();
+  char* serializedJson[JSON_SIZE];
+
+  serializeJson(data, serializedJson);
+
+  sendToWebserver(serializedJson, client);
   */
 }
 
@@ -279,4 +283,44 @@ static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& cl
     ThingSpeak.writeFields(channelID, myWriteAPIKey);
   }
     client.stop();
+}
+
+/*
+  sendToWebserver()
+  --------------
+  Send data to a webserver.
+*/
+
+static void sendToWebserver(String data, WiFiClient& client) {
+  String HTTP_METHOD = "POST";
+  String PATH = "/update";
+  String HTTP_SERVER = "localhost";
+  float HTTP_PORT = 80;
+
+  if (client.connect(HTTP_SERVER, HTTP_PORT)) {
+    // HTTP header
+    client.println(HTTP_METHOD + " " + PATH + " HTTP/1.1");
+    client.println("Host: " + String(HTTP_SERVER));
+    client.println("Connection: close");
+    client.println("Content-Type: application/json");
+    client.print("Content-Length: ");
+    client.println(data.length());
+    client.println(); // end HTTP header
+
+    // HTTP body
+    client.println(data);
+
+
+    while(client.connected()) {
+      if(client.available()){
+        // read an incoming byte from the server and print it to serial monitor:
+        char c = client.read();
+        Serial.print(c);
+      }
+    }
+
+    // the server's disconnected, stop the client:
+    client.stop();
+  }
+    
 }
