@@ -43,6 +43,7 @@ static const char* yesNo(bool value) {
 void setup() {
   Serial.begin(115200);
 
+  Wire.begin(); 
   /*
     Snapshot current time before initializing logic.
     This gives logic a sane starting timestamp.
