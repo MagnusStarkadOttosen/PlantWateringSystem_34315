@@ -67,6 +67,11 @@ struct SystemState {
   bool soilDry = false;
 
   /*
+    Water level sensor
+  */
+  bool isEmpty = true;
+  
+  /*
     Pump control
   */
   bool pumpEnabled = true;
