@@ -205,6 +205,11 @@ static void updateWebserver(SystemState& state, WiFiClient& client) {
 
   generateJSON(data, state);
 
+  // Don't try to send data if the WiFi isn't connected.
+  if (WiFi.status() != WL_CONNECTED) {
+    return;
+  }
+
   sendToThingspeak(data, client);
 
   /* This is not needed for Thingspeak, but will be if we decide on doing it with a real webserver.
@@ -239,47 +244,51 @@ static void generateJSON(StaticJsonDocument<JSON_SIZE>& data, SystemState& state
   Send data to Thingspeak.
 */
 static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& client) {
+  #if !defined(THINGSPEAK_CHANNEL_ID) || !defined(THINGSPEAK_API_KEY) 
+    Serial.println("Thingspeak not configured");
+    return;
+  #else
+    unsigned long channelID = THINGSPEAK_CHANNEL_ID; // Thingspeak channel
+    const char * myWriteAPIKey = THINGSPEAK_API_KEY; // API key
+    const char* server = "api.thingspeak.com";
 
-  unsigned long channelID = THINGSPEAK_CHANNEL_ID; // Thingspeak channel
-  const char * myWriteAPIKey = THINGSPEAK_API_KEY; // API key
-  const char* server = "api.thingspeak.com";
+      ThingSpeak.begin(client);
+    if (client.connect(server, 80)) {
+      
+      // Measure Signal Strength (RSSI) of Wi-Fi connection
+      long rssi = WiFi.RSSI();
 
-    ThingSpeak.begin(client);
-  if (client.connect(server, 80)) {
+      Serial.print("RSSI: ");
+      Serial.println(rssi); 
+
+
+      ThingSpeak.setField(4,rssi);
+
+      // Fetch values.
+      bool fanActive = data["fanActive"];
+      float fanPhaseStartMs = data["fanPhaseStartMs"];
+      bool fanCycleIsOnPhase = data["fanCycleIsOnPhase"];
+      bool fanCycleEnabled = data["fanCycleEnabled"];
+      bool soilDry = data["soilDry"];
+      bool pumpEnabled = data["pumpEnabled"];
+      float pumpStartTime = data["pumpStartTime"];
+      bool pumpActive = data["pumpActive"];
+
+      // Set thingspeak fields
+      ThingSpeak.setField(1, soilDry);
+      ThingSpeak.setField(2, fanActive);
+      ThingSpeak.setField(3, fanPhaseStartMs);
+      ThingSpeak.setField(4, fanCycleIsOnPhase);
+      ThingSpeak.setField(5, fanCycleEnabled);
+      ThingSpeak.setField(6, pumpEnabled);
+      ThingSpeak.setField(7, pumpStartTime);
+      ThingSpeak.setField(8, pumpActive);
     
-    // Measure Signal Strength (RSSI) of Wi-Fi connection
-    long rssi = WiFi.RSSI();
-
-    Serial.print("RSSI: ");
-    Serial.println(rssi); 
-
-
-    ThingSpeak.setField(4,rssi);
-
-    // Fetch values.
-    bool fanActive = data["fanActive"];
-    float fanPhaseStartMs = data["fanPhaseStartMs"];
-    bool fanCycleIsOnPhase = data["fanCycleIsOnPhase"];
-    bool fanCycleEnabled = data["fanCycleEnabled"];
-    bool soilDry = data["soilDry"];
-    bool pumpEnabled = data["pumpEnabled"];
-    float pumpStartTime = data["pumpStartTime"];
-    bool pumpActive = data["pumpActive"];
-
-    // Set thingspeak fields
-    ThingSpeak.setField(1, soilDry);
-    ThingSpeak.setField(2, fanActive);
-    ThingSpeak.setField(3, fanPhaseStartMs);
-    ThingSpeak.setField(4, fanCycleIsOnPhase);
-    ThingSpeak.setField(5, fanCycleEnabled);
-    ThingSpeak.setField(6, pumpEnabled);
-    ThingSpeak.setField(7, pumpStartTime);
-    ThingSpeak.setField(8, pumpActive);
-  
-    // Write to thingspeak
-    ThingSpeak.writeFields(channelID, myWriteAPIKey);
-  }
-    client.stop();
+      // Write to thingspeak
+      ThingSpeak.writeFields(channelID, myWriteAPIKey);
+    }
+      client.stop();
+  #endif
 }
 
 /*

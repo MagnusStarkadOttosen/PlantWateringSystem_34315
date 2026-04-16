@@ -45,25 +45,34 @@ static const char* yesNo(bool value) {
 void setup() {
   Serial.begin(115200);
 
-  // Connecting to WiFi network
   Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(WIFI_SSID);
-  
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  
-  while (WiFi.status() != WL_CONNECTED) {
-    if (state.nowMs - lastPrintMs < SERIAL_PRINT_INTERVAL_MS) {
-      return;
+
+  #if !defined(WIFI_SSID) || !defined(WIFI_PASSWORD)  
+    Serial.println("WiFi credentials missing!");
+
+    Serial.println("Starting without WiFi functionality...");
+
+  #else
+
+    // Connecting to WiFi network
+    Serial.println();
+    Serial.print("Connecting to ");
+    Serial.println(WIFI_SSID);
+    
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    
+    while (WiFi.status() != WL_CONNECTED) {
+      if (state.nowMs - lastPrintMs < SERIAL_PRINT_INTERVAL_MS) {
+        return;
+      }
+
+      lastPrintMs = state.nowMs;
+      Serial.print(".");
     }
 
-    lastPrintMs = state.nowMs;
-    Serial.print(".");
-  }
-
-  Serial.println("");
-  Serial.println("WiFi connected");
-
+    Serial.println("");
+    Serial.println("WiFi connected");
+  #endif
   /*
     Snapshot current time before initializing logic.
     This gives logic a sane starting timestamp.
