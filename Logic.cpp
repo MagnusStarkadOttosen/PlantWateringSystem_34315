@@ -221,12 +221,14 @@ static void updateWebserver(SystemState& state, WiFiClient& client) {
 
 
 static void generateJSON(StaticJsonDocument<JSON_SIZE>& data, SystemState& state) {
-  data["nowMs"] = state.nowMs; // 12345
-  data["fanCommand"] = state.fanCommand; // false
+  data["fanActive"] = state.fanActive; // false
   data["fanPhaseStartMs"] = state.fanPhaseStartMs; // 12345
   data["fanCycleIsOnPhase"] = state.fanCycleIsOnPhase; // false
   data["fanCycleEnabled"] = state.fanCycleEnabled; // false
   data["soilDry"] = state.soilDry; // false
+  data["pumpEnabled"] = state.pumpEnabled; // false
+  data["pumpStartTime"] = state.pumpStartTime; // 12345
+  data["pumpActive"] = state.pumpActive; // false
 }
 
 /*
@@ -254,20 +256,24 @@ static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& cl
     ThingSpeak.setField(4,rssi);
 
     // Fetch values.
-    float nowMs = data["nowMs"];
-    bool fanCommand = data["fanCommand"];
+    bool fanActive = data["fanActive"];
     float fanPhaseStartMs = data["fanPhaseStartMs"];
     bool fanCycleIsOnPhase = data["fanCycleIsOnPhase"];
     bool fanCycleEnabled = data["fanCycleEnabled"];
     bool soilDry = data["soilDry"];
+    bool pumpEnabled = data["pumpEnabled"];
+    float pumpStartTime = data["pumpStartTime"];
+    bool pumpActive = data["pumpActive"];
 
     // Set thingspeak fields
-    ThingSpeak.setField(1, nowMs);
-    ThingSpeak.setField(2, fanCommand);
+    ThingSpeak.setField(1, soilDry);
+    ThingSpeak.setField(2, fanActive);
     ThingSpeak.setField(3, fanPhaseStartMs);
     ThingSpeak.setField(4, fanCycleIsOnPhase);
     ThingSpeak.setField(5, fanCycleEnabled);
-    ThingSpeak.setField(6, soilDry);
+    ThingSpeak.setField(6, pumpEnabled);
+    ThingSpeak.setField(7, pumpStartTime);
+    ThingSpeak.setField(8, pumpActive);
   
     // Write to thingspeak
     ThingSpeak.writeFields(channelID, myWriteAPIKey);
