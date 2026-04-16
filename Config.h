@@ -72,9 +72,9 @@ static const unsigned long PUMP_ON_DURATION_MS = 3000;
 static const unsigned long JSON_SIZE = 192;
 
 /*
-  Thingspeak update interval  
+  Webserver update interval  
 */
-static const int postingInterval = 20 * 1000; // post data every 20 seconds
+static const int WEBSERVER_UPDATE_INTERVAL_MS = 20 * 1000; // post data every 20 seconds
 
 
 #endif

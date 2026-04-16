@@ -59,10 +59,20 @@ void initializeLogic(SystemState& state) {
   1. compute normal behavior
   2. apply safety overrides last
 */
+static unsigned long lastWebserverUpdateMs = 0;
+
 void updateLogic(SystemState& state, WiFiClient& client) {
   updateFanLogic(state);
   updateWateringLogic(state);
   applySafetyOverrides(state);
+  /*
+    Only update the webserver every 20 seconds
+  */
+  if (state.nowMs - lastWebserverUpdateMs < WEBSERVER_UPDATE_INTERVAL_MS) {
+    return;
+  }
+
+  lastWebserverUpdateMs = state.nowMs;
   updateWebserver(state, client);
 }
 
@@ -190,8 +200,6 @@ static void applySafetyOverrides(SystemState& state) {
   ----------------
   Update the webserver with the latest state.
 */
-static unsigned long lastPrintMs = 0;
-
 static void updateWebserver(SystemState& state, WiFiClient& client) {
   StaticJsonDocument<JSON_SIZE> data;
 
@@ -199,15 +207,7 @@ static void updateWebserver(SystemState& state, WiFiClient& client) {
 
   sendToThingspeak(data, client);
 
-  /*
-    Debug print guard.
-  */
-  if (state.nowMs - lastPrintMs < SERIAL_PRINT_INTERVAL_MS) {
-    return;
-  }
-
-  lastPrintMs = state.nowMs;
-  /* This is not needed for Thingspeak, but will be if we deccide on doing it with a real webserver.
+  /* This is not needed for Thingspeak, but will be if we decide on doing it with a real webserver.
 
   char* serializedJson[JSON_SIZE];
 
@@ -222,8 +222,6 @@ static void updateWebserver(SystemState& state, WiFiClient& client) {
   --------------
   Generate JSON data from the latest state.
 */
-
-
 static void generateJSON(StaticJsonDocument<JSON_SIZE>& data, SystemState& state) {
   data["fanActive"] = state.fanActive; // false
   data["fanPhaseStartMs"] = state.fanPhaseStartMs; // 12345
@@ -240,7 +238,6 @@ static void generateJSON(StaticJsonDocument<JSON_SIZE>& data, SystemState& state
   --------------
   Send data to Thingspeak.
 */
-
 static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& client) {
 
   unsigned long channelID = THINGSPEAK_CHANNEL_ID; // Thingspeak channel
@@ -290,7 +287,6 @@ static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& cl
   --------------
   Send data to a webserver.
 */
-
 static void sendToWebserver(String data, WiFiClient& client) {
   String HTTP_METHOD = "POST";
   String PATH = "/update";
