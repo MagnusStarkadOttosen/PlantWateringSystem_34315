@@ -6,6 +6,7 @@
 #include "SoilMoistureSensor.h"
 #include "ESP8266WiFi.h"
 #include "WaterLevelSensor.h"
+#include "DisplayController.h"
 
 /*
   MAIN APPLICATION
@@ -73,6 +74,8 @@ void setup() {
     Serial.println("");
     Serial.println("WiFi connected");
   #endif
+  
+  Wire.begin(); 
   /*
     Snapshot current time before initializing logic.
     This gives logic a sane starting timestamp.
@@ -84,6 +87,7 @@ void setup() {
   soilSensor.begin();
 
   initializeLogic(state);
+  initDisplay();
 }
 
 void loop() {
@@ -115,6 +119,11 @@ void loop() {
   */
   fan.setOn(state.fanActive);
   pump.setOn(state.pumpActive);
+
+   /*
+    Updates LCD Display
+  */
+  updateDisplay(state);
 
   /*
     Debug print guard.
