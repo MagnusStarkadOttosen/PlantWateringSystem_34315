@@ -27,43 +27,32 @@ void initDisplay() {
 
 void updateDisplay(const SystemState& state) {
 
-    unsigned long now = millis();
-
-    // --- screen switching logic ---
-    if (now - lastSwitchTime > screenInterval) {
-        currentScreen = (currentScreen + 1) % 4;
-        lastSwitchTime = now;
-    }
-
     display.clearDisplay();
+    display.setTextSize(1);
+
+    // ===== TOP LEFT =====
     display.setCursor(0, 0);
+    display.print("FAN");
+    display.setCursor(0, 10);
+    display.print(state.fanActive ? "ON" : "OFF");
 
-    switch (currentScreen) {
+    // ===== TOP RIGHT =====
+    display.setCursor(64, 0);
+    display.print("SOIL");
+    display.setCursor(64, 10);
+    display.print(state.soilDry ? "DRY" : "WET");
 
-        case 0:
-            display.println("== FAN ==");
-            display.print("State: ");
-            display.println(state.fanActive ? "ON" : "OFF");
-            break;
+    // ===== BOTTOM LEFT =====
+    display.setCursor(0, 32);
+    display.print("PUMP");
+    display.setCursor(0, 42);
+    display.print(state.pumpActive ? "ON" : "OFF");
 
-        case 1:
-            display.println("== SOIL ==");
-            display.print("Moisture: ");
-            display.println(state.soilDry ? "DRY" : "WET");
-            break;
-
-        case 2:
-            display.println("== PUMP ==");
-            display.print("State: ");
-            display.println(state.pumpActive ? "ON" : "OFF");
-            break;
-
-        case 3:
-            display.println("== CYCLE ==");
-            display.print("Enabled: ");
-            display.println(state.fanCycleEnabled ? "YES" : "NO");
-            break;
-    }
+    // ===== BOTTOM RIGHT =====
+    display.setCursor(64, 32);
+    display.print("CYCLE");
+    display.setCursor(64, 42);
+    display.print(state.fanCycleEnabled ? "YES" : "NO");
 
     display.display();
 }
