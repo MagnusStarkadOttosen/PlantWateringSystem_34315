@@ -15,12 +15,12 @@
 /*
   Hardware pins
 */
-static const uint8_t PIN_FAN = D1;
+static const uint8_t PIN_FAN = D8;
 static const uint8_t PIN_PUMP = D5;
 static const uint8_t PIN_SOIL_SENSOR = D6;
 static const uint8_t PIN_SOIL_SENSOR_POWER = D7;
 static const uint8_t PIN_WATER_SENSOR = A0;
-static const uint8_t PIN_WATER_SENSOR_POWER = D2;
+static const uint8_t PIN_WATER_SENSOR_POWER = D4;
 
 /*
   Output polarity

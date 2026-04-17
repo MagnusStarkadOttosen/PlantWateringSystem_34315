@@ -5,6 +5,7 @@
 #include "SoilMoistureSensor.h"
 #include "WaterLevelSensor.h"
 #include "DisplayController.h"
+#include <Wire.h>
 
 /*
   MAIN APPLICATION
