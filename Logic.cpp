@@ -17,8 +17,9 @@ static void updateWateringLogic(SystemState& state);
 static void applySafetyOverrides(SystemState& state);
 static void updateWebserver(SystemState& state, WiFiClient& client);
 static void generateJSON(StaticJsonDocument<JSON_SIZE>& data, SystemState& state);
-static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& client);
 static void sendToWebserver(char* jsonBuffer[JSON_SIZE], WiFiClient& client);
+static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& client);
+static void sendToRestApi(String serializedJson, WiFiClient& client);
 
 /*
   initializeLogic()
@@ -215,9 +216,9 @@ static void updateWebserver(SystemState& state, WiFiClient& client) {
     return;
   #else
     if (WEBSERVER_MODE == "THINGSPEAK") {
-        sendToThingspeak(data, client);
+      sendToThingspeak(data, client);
     } else if (WEBSERVER_MODE == "REST_API") {
-      char* serializedJson[JSON_SIZE];
+      char serializedJson[JSON_SIZE];
 
       serializeJson(data, serializedJson);
 
@@ -293,7 +294,7 @@ static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& cl
       // Write to thingspeak
       ThingSpeak.writeFields(channelID, myWriteAPIKey);
     }
-      client.stop();
+    client.stop();
   #endif
 }
 
@@ -306,33 +307,38 @@ static void sendToRestApi(String data, WiFiClient& client) {
   #if !defined(REST_API_SERVER) || !defined(REST_API_PORT)
     Serial.println("REST_API_SERVER or REST_API_PORT not configured");
     return;
-  #endif
-  const String PATH = "/update";
+  #else
+    const String PATH = "/update";
 
-  if (client.connect(REST_API_SERVER, REST_API_PORT)) {
-    // HTTP header
-    client.println("POST" + PATH + " HTTP/1.1");
-    client.println("Host: " + String(REST_API_SERVER));
-    client.println("Connection: close");
-    client.println("Content-Type: application/json");
-    client.print("Content-Length: ");
-    client.println(data.length());
-    client.println(); // end HTTP header
+    if (client.connect(REST_API_SERVER, REST_API_PORT)) {
+      // HTTP header
+      client.println("POST" + PATH + " HTTP/1.1");
+      client.println("Host: " + String(REST_API_SERVER));
+      client.println("Connection: close");
+      client.println("Content-Type: application/json");
+      client.print("Content-Length: ");
+      client.println(data.length());
+      client.println(); // end HTTP header
 
-    // HTTP body
-    client.println(data);
+      // HTTP body
+      client.println(data);
+      Serial.println("SENT DATA: " + data);
 
 
-    while(client.connected()) {
-      if(client.available()){
-        // read an incoming byte from the server and print it to serial monitor:
-        char c = client.read();
-        Serial.print(c);
+      while(client.connected()) {
+        if(client.available()){
+          // read an incoming byte from the server and print it to serial monitor:
+          char c = client.read();
+          Serial.print(c);
+        }
       }
-    }
+      Serial.println();
 
-    // the server's disconnected, stop the client:
-    client.stop();
-  }
-    
+      // the server's disconnected, stop the client:
+      client.stop();
+    } else {
+      Serial.println("connection failed");
+    }
+  #endif
+
 }
