@@ -77,10 +77,9 @@ static const unsigned long JSON_SIZE = 192;
 static const int WEBSERVER_UPDATE_INTERVAL_MS = 20 * 1000; // post data every 20 seconds
 
 /*
-  Webserver config
+  REST api config
 */
-static const String WEBSERVER_METHOD = "POST";
-static const String PATH = "/update";
-static const int WEBSERVER_PORT = 8080;
+static const String REST_API_METHOD = "POST";
+static const int REST_API_PORT = 8080;
 
 #endif

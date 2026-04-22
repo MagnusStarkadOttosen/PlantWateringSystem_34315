@@ -210,16 +210,15 @@ static void updateWebserver(SystemState& state, WiFiClient& client) {
     return;
   }
 
-  sendToThingspeak(data, client);
+  if (WEBSERVER_MODE == "THINGSPEAK") {
+      sendToThingspeak(data, client);
+  } else if (WEBSERVER_MODE == "REST_API") {
+    char* serializedJson[JSON_SIZE];
 
-  /* This is not needed for Thingspeak, but will be if we decide on doing it with a real webserver.
+    serializeJson(data, serializedJson);
 
-  char* serializedJson[JSON_SIZE];
-
-  serializeJson(data, serializedJson);
-
-  sendToWebserver(serializedJson, client);
-  */
+    sendToRestApi(serializedJson, client);
+  }
 }
 
 /*
@@ -292,15 +291,17 @@ static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& cl
 }
 
 /*
-  sendToWebserver()
+  sendToRestApi()
   --------------
   Send data to a webserver.
 */
-static void sendToWebserver(String data, WiFiClient& client) {
-  if (client.connect(WEBSERVER_SERVER, WEBSERVER_PORT)) {
+static void sendToRestApi(String data, WiFiClient& client) {
+  const String PATH = "/update";
+
+  if (client.connect(REST_API_SERVER, REST_API_PORT)) {
     // HTTP header
-    client.println(WEBSERVER_METHOD + " " + PATH + " HTTP/1.1");
-    client.println("Host: " + String(WEBSERVER_SERVER));
+    client.println(REST_API_METHOD + " " + PATH + " HTTP/1.1");
+    client.println("Host: " + String(REST_API_SERVER));
     client.println("Connection: close");
     client.println("Content-Type: application/json");
     client.print("Content-Length: ");
