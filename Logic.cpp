@@ -297,15 +297,10 @@ static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& cl
   Send data to a webserver.
 */
 static void sendToWebserver(String data, WiFiClient& client) {
-  String HTTP_METHOD = "POST";
-  String PATH = "/update";
-  String HTTP_SERVER = "localhost";
-  float HTTP_PORT = 80;
-
-  if (client.connect(HTTP_SERVER, HTTP_PORT)) {
+  if (client.connect(WEBSERVER_SERVER, WEBSERVER_PORT)) {
     // HTTP header
-    client.println(HTTP_METHOD + " " + PATH + " HTTP/1.1");
-    client.println("Host: " + String(HTTP_SERVER));
+    client.println(WEBSERVER_METHOD + " " + PATH + " HTTP/1.1");
+    client.println("Host: " + String(WEBSERVER_SERVER));
     client.println("Connection: close");
     client.println("Content-Type: application/json");
     client.print("Content-Length: ");
