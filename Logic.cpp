@@ -210,15 +210,22 @@ static void updateWebserver(SystemState& state, WiFiClient& client) {
     return;
   }
 
-  if (WEBSERVER_MODE == "THINGSPEAK") {
-      sendToThingspeak(data, client);
-  } else if (WEBSERVER_MODE == "REST_API") {
-    char* serializedJson[JSON_SIZE];
+  #if !defined(WEBSERVER_MODE)
+    Serial.println("WEBSERVER_MODE not configured");
+    return;
+  #else
+    if (WEBSERVER_MODE == "THINGSPEAK") {
+        sendToThingspeak(data, client);
+    } else if (WEBSERVER_MODE == "REST_API") {
+      char* serializedJson[JSON_SIZE];
 
-    serializeJson(data, serializedJson);
+      serializeJson(data, serializedJson);
 
-    sendToRestApi(serializedJson, client);
-  }
+      sendToRestApi(serializedJson, client);
+    }
+
+  #endif
+
 }
 
 /*
@@ -296,11 +303,15 @@ static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& cl
   Send data to a webserver.
 */
 static void sendToRestApi(String data, WiFiClient& client) {
+  #if !defined(REST_API_SERVER) || !defined(REST_API_PORT)
+    Serial.println("REST_API_SERVER or REST_API_PORT not configured");
+    return;
+  #endif
   const String PATH = "/update";
 
   if (client.connect(REST_API_SERVER, REST_API_PORT)) {
     // HTTP header
-    client.println(REST_API_METHOD + " " + PATH + " HTTP/1.1");
+    client.println("POST" + PATH + " HTTP/1.1");
     client.println("Host: " + String(REST_API_SERVER));
     client.println("Connection: close");
     client.println("Content-Type: application/json");

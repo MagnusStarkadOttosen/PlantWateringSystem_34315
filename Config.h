@@ -79,7 +79,6 @@ static const int WEBSERVER_UPDATE_INTERVAL_MS = 20 * 1000; // post data every 20
 /*
   REST api config
 */
-static const String REST_API_METHOD = "POST";
 static const int REST_API_PORT = 8080;
 
 #endif
