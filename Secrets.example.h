@@ -18,6 +18,7 @@
     REST api config
 */
 #define REST_API_SERVER "localhost"
+#define REST_API_PORT 8080
 
 /*
     Webserver mode
