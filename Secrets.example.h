@@ -13,3 +13,9 @@
 */
 #define THINGSPEAK_API_KEY "mykey"
 #define THINGSPEAK_CHANNEL_ID mychannelid
+
+/*
+    Webserver config
+*/
+
+#define WEBSERVER_SERVER "localhost"
