@@ -17,7 +17,7 @@
 /*
     REST api config
 */
-#define REST_API_SERVER "localhost"
+#define REST_API_SERVER "http://0.0.0.0" // Remember 'http://' or it wont work
 #define REST_API_PORT 8080
 
 /*
