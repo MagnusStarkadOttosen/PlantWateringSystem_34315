@@ -66,4 +66,14 @@ static const unsigned long SERIAL_PRINT_INTERVAL_MS = 500;
 */
 static const unsigned long PUMP_ON_DURATION_MS = 3000;
 
+/*
+  JSON data size
+*/
+static const unsigned long JSON_SIZE = 192;
+
+/*
+  Webserver update interval  
+*/
+static const int WEBSERVER_UPDATE_INTERVAL_MS = 20 * 1000; // post data every 20 seconds
+
 #endif
