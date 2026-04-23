@@ -6,7 +6,7 @@ app.use(express.json());
 app.post('/update', (req, res) => {
   console.log(req.body);
 
-  res.status(200);
+  res.status(200).json(req.body);
 });
 
 app.listen(8080, () => {
