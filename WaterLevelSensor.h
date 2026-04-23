@@ -5,7 +5,7 @@
 
 class WaterLevelSensor {
 public:
-  WaterLevelSensor(uint8_t signalPin, uint8_t powerPin, bool activeLow);
+  WaterLevelSensor(uint8_t signalPin, bool activeLow);
 
   /*
     begin()
@@ -19,7 +19,7 @@ public:
     --------
     Read the sensor and store latest interpreted state.
   */
-  void update(unsigned long nowMs);
+  void update();
 
   /*
     isDry()
@@ -35,24 +35,12 @@ public:
   */
   int getRawValue() const;
 
-  /*
-    isPowered()
-    -----------
-    Returns if the sensor is recieving power
-  */
-  bool isPowered() const;
-
 private:
   uint8_t _signalPin;
-  uint8_t _powerPin;
   bool _activeLow;
 
   bool _isEmpty;
   int _rawValue;
-  
-  bool _isPowered;
-  unsigned long _lastReadMs;
-  unsigned long _powerOnMs;
 };
 
 #endif

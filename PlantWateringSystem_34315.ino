@@ -6,6 +6,7 @@
 #include "WaterLevelSensor.h"
 #include "DisplayController.h"
 #include <Wire.h>
+#include "SensorPower.h"
 
 /*
   MAIN APPLICATION
@@ -24,10 +25,11 @@
 */
 
 SystemState state;
+SensorPower sensorPower(PIN_SOIL_SENSOR_POWER, SOIL_SENSOR_POWER_ACTIVE_HIGH);
 MotorController fan(PIN_FAN, FAN_ACTIVE_HIGH);
 MotorController pump(PIN_PUMP, PUMP_ACTIVE_HIGH);
-SoilMoistureSensor soilSensor(PIN_SOIL_SENSOR, PIN_SOIL_SENSOR_POWER, SOIL_SENSOR_SIGNAL_ACTIVE_LOW, SOIL_SENSOR_POWER_ACTIVE_HIGH);
-WaterLevelSensor waterLevelSensor(PIN_WATER_SENSOR, PIN_WATER_SENSOR_POWER, SOIL_SENSOR_SIGNAL_ACTIVE_LOW);
+SoilMoistureSensor soilSensor(PIN_SOIL_SENSOR, PIN_ANALOG, SOIL_SENSOR_SIGNAL_ACTIVE_LOW);
+WaterLevelSensor waterLevelSensor(PIN_WATER_SENSOR, SOIL_SENSOR_SIGNAL_ACTIVE_LOW);
 
 unsigned long lastPrintMs = 0;
 unsigned long loopCounter = 0;
@@ -53,7 +55,10 @@ void setup() {
 
   fan.begin();
   pump.begin();
+
+  sensorPower.begin();
   soilSensor.begin();
+  waterLevelSensor.begin();
 
   initializeLogic(state);
   initDisplay();
@@ -67,15 +72,32 @@ void loop() {
   state.nowMs = millis();
 
   /*
-    Update sensor values
+    Water and soil
+    is like this because it shares power pin
   */
-  soilSensor.update(state.nowMs);
+  static unsigned long lastSensorReadMs = 0;
+  static bool sensorPowerOnPhase = false;
+  static unsigned long sensorPowerOnMs = 0;
 
-  /*
-    Copy sensor values into shared state
-  */
-  state.soilDry = soilSensor.isDry();
-  state.isEmpty = waterLevelSensor.isEmpty();
+  if (!sensorPowerOnPhase) {
+    if (state.nowMs - lastSensorReadMs >= SENSOR_READ_INTERVAL_MS) {
+      sensorPower.setOn(true);
+      sensorPowerOnMs = state.nowMs;
+      sensorPowerOnPhase = true;
+    }
+  } else {
+    if (state.nowMs - sensorPowerOnMs >= SENSOR_POWER_SETTLE_MS) {
+      soilSensor.update();
+      waterLevelSensor.update();
+
+      state.soilDry = soilSensor.isDry();
+      state.isEmpty = waterLevelSensor.isEmpty();
+
+      sensorPower.setOn(false);
+      sensorPowerOnPhase = false;
+      lastSensorReadMs = state.nowMs;
+    }
+  }
 
   /*
     Update decision logic.
@@ -113,20 +135,28 @@ void loop() {
   Serial.print(onOff(state.fanActive));
   Serial.print("  ");
 
-  Serial.print("SoilPower:");
-  Serial.print(onOff(soilSensor.isPowered()));
+  Serial.print("Power water/soil:");
+  Serial.print(onOff(sensorPowerOnPhase));
   Serial.print("  ");
 
   Serial.print("SoilDry:");
   Serial.print(yesNo(state.soilDry));
   Serial.print("  ");
 
+  Serial.print("WaterEmpty:");
+  Serial.print(yesNo(state.isEmpty));
+  Serial.print("  ");
+
   Serial.print("Pump:");
   Serial.print(onOff(state.pumpActive));
   Serial.print("  ");
 
-  Serial.print("SoilRaw:");
-  Serial.print(soilSensor.getRawValue() == HIGH ? "HIGH" : "LOW ");
+  Serial.print("SoilDig:");
+  Serial.print(soilSensor.getDigitalValue() == HIGH ? "HIGH" : "LOW ");
+  Serial.print("  ");
+
+  Serial.print("SoilAna:");
+  Serial.print(soilSensor.getAnalogValue());
   Serial.print("  ");
 
   Serial.print("PumpTimer:");

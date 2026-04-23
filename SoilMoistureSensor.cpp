@@ -1,75 +1,39 @@
 #include "SoilMoistureSensor.h"
 #include "Config.h"
 
-SoilMoistureSensor::SoilMoistureSensor(uint8_t signalPin, uint8_t powerPin, bool signalActiveLow, bool powerActiveHigh)
-  : _signalPin(signalPin),
-    _powerPin(powerPin),
+SoilMoistureSensor::SoilMoistureSensor(uint8_t digitalPin, uint8_t analogPin, bool signalActiveLow)
+  : _digitalPin(digitalPin),
+    _analogPin(analogPin),
     _signalActiveLow(signalActiveLow),
-    _powerActiveHigh(powerActiveHigh),
     _isDry(false),
-    _rawValue(HIGH),
-    _isPowered(false),
-    _lastReadMs(0),
-    _powerOnMs(0) {
+    _digitalValue(HIGH),
+    _analogValue(0) {
 }
 
 void SoilMoistureSensor::begin() {
-  pinMode(_signalPin, INPUT);
-  pinMode(_powerPin, OUTPUT);
-
-  digitalWrite(_powerPin, _powerActiveHigh ? LOW : HIGH);
-  _isPowered = false;
+  pinMode(_digitalPin, INPUT);
 }
 
-void SoilMoistureSensor::update(unsigned long nowMs) {
-  /*
-    PHASE 1:
-    If sensor is OFF, only power it on when it is time for a new reading.
-  */
-  if (!_isPowered) {
-    if (nowMs - _lastReadMs < SOIL_SENSOR_READ_INTERVAL_MS) {
-      return;
-    }
+void SoilMoistureSensor::update() {
 
-    digitalWrite(_powerPin, _powerActiveHigh ? HIGH : LOW);
-    _isPowered = true;
-    _powerOnMs = nowMs;
-    return;
-  }
-
-  /*
-    PHASE 2:
-    Sensor is ON, wait for it to stabilize.
-  */
-  if (nowMs - _powerOnMs < SOIL_SENSOR_POWER_SETTLE_MS) {
-    return;
-  }
-
-  /*
-    PHASE 3:
-    Read once, store result, then power sensor back OFF.
-  */
-  _rawValue = digitalRead(_signalPin);
+  _digitalValue = digitalRead(_digitalPin);
+  _analogValue = analogRead(_analogPin);
 
   if (_signalActiveLow) {
-    _isDry = (_rawValue == LOW);
+    _isDry = (_digitalValue == LOW);
   } else {
-    _isDry = (_rawValue == HIGH);
+    _isDry = (_digitalValue == HIGH);
   }
-
-  digitalWrite(_powerPin, _powerActiveHigh ? LOW : HIGH);
-  _isPowered = false;
-  _lastReadMs = nowMs;
 }
 
 bool SoilMoistureSensor::isDry() const {
   return _isDry;
 }
 
-int SoilMoistureSensor::getRawValue() const {
-  return _rawValue;
+int SoilMoistureSensor::getDigitalValue() const {
+  return _digitalValue;
 }
 
-bool SoilMoistureSensor::isPowered() const {
-  return _isPowered;
+int SoilMoistureSensor::getAnalogValue() const {
+  return _analogValue;
 }
