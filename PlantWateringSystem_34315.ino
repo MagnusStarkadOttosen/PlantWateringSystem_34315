@@ -5,6 +5,8 @@
 #include "MotorController.h"
 #include "SoilMoistureSensor.h"
 #include "ESP8266WiFi.h"
+#include <ESP8266HTTPClient.h>
+#include <WiFiClient.h>
 #include "WaterLevelSensor.h"
 #include "DisplayController.h"
 
@@ -24,6 +26,7 @@
   or business logic everywhere, the architecture is breaking.
 */
 WiFiClient client;
+HTTPClient http;
 
 SystemState state;
 MotorController fan(PIN_FAN, FAN_ACTIVE_HIGH);
@@ -75,7 +78,7 @@ void setup() {
     Serial.println("WiFi connected");
   #endif
   
-  //Wire.begin(); 
+  Wire.begin(); 
   /*
     Snapshot current time before initializing logic.
     This gives logic a sane starting timestamp.
@@ -112,7 +115,7 @@ void loop() {
     Update decision logic.
     This writes desired outputs into SystemState.
   */
-  updateLogic(state, client);
+  updateLogic(state, client, http);
 
   /*
     Apply desired logic output to hardware.
@@ -123,7 +126,7 @@ void loop() {
    /*
     Updates LCD Display
   */
-  //updateDisplay(state);
+  updateDisplay(state);
 
   /*
     Debug print guard.
