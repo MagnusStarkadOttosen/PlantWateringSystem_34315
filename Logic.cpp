@@ -15,11 +15,11 @@
 static void updateFanLogic(SystemState& state);
 static void updateWateringLogic(SystemState& state);
 static void applySafetyOverrides(SystemState& state);
-static void updateWebserver(SystemState& state, WiFiClient& client);
+static void updateWebserver(SystemState& state, WiFiClient& client, HTTPClient& http);
 static void generateJSON(StaticJsonDocument<JSON_SIZE>& data, SystemState& state);
 static void sendToWebserver(char* jsonBuffer[JSON_SIZE], WiFiClient& client);
 static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& client);
-static void sendToRestApi(String serializedJson, WiFiClient& client);
+static void sendToRestApi(String serializedJson, WiFiClient& client, HTTPClient& http);
 
 /*
   initializeLogic()
@@ -62,7 +62,7 @@ void initializeLogic(SystemState& state) {
 */
 static unsigned long lastWebserverUpdateMs = 0;
 
-void updateLogic(SystemState& state, WiFiClient& client) {
+void updateLogic(SystemState& state, WiFiClient& client, HTTPClient& http) {
   updateFanLogic(state);
   updateWateringLogic(state);
   applySafetyOverrides(state);
@@ -74,7 +74,7 @@ void updateLogic(SystemState& state, WiFiClient& client) {
   }
 
   lastWebserverUpdateMs = state.nowMs;
-  updateWebserver(state, client);
+  updateWebserver(state, client, http);
 }
 
 /*
@@ -201,7 +201,7 @@ static void applySafetyOverrides(SystemState& state) {
   ----------------
   Update the webserver with the latest state.
 */
-static void updateWebserver(SystemState& state, WiFiClient& client) {
+static void updateWebserver(SystemState& state, WiFiClient& client, HTTPClient& http) {
   StaticJsonDocument<JSON_SIZE> data;
 
   generateJSON(data, state);
@@ -222,7 +222,7 @@ static void updateWebserver(SystemState& state, WiFiClient& client) {
 
       serializeJson(data, serializedJson);
 
-      sendToRestApi(serializedJson, client);
+      sendToRestApi(serializedJson, client, http);
     }
 
   #endif
@@ -303,42 +303,25 @@ static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& cl
   --------------
   Send data to a webserver.
 */
-static void sendToRestApi(String data, WiFiClient& client) {
+static void sendToRestApi(String data, WiFiClient& client, HTTPClient& http) {
   #if !defined(REST_API_SERVER) || !defined(REST_API_PORT)
     Serial.println("REST_API_SERVER or REST_API_PORT not configured");
     return;
   #else
+
     const String PATH = "/update";
 
-    if (client.connect(REST_API_SERVER, REST_API_PORT)) {
-      // HTTP header
-      client.println("POST" + PATH + " HTTP/1.1");
-      client.println("Host: " + String(REST_API_SERVER));
-      client.println("Connection: close");
-      client.println("Content-Type: application/json");
-      client.print("Content-Length: ");
-      client.println(data.length());
-      client.println(); // end HTTP header
+    http.begin(client, String(REST_API_SERVER) + ":" + String(REST_API_PORT) + PATH);// REST_API_SERVER + ':' + REST_API_PORT + PATH);
 
-      // HTTP body
-      client.println(data);
-      Serial.println("SENT DATA: " + data);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("Content-Length", String(data.length()));
 
+    int httpResponseCode = http.POST(data);
 
-      while(client.connected()) {
-        if(client.available()){
-          // read an incoming byte from the server and print it to serial monitor:
-          char c = client.read();
-          Serial.print(c);
-        }
-      }
-      Serial.println();
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
 
-      // the server's disconnected, stop the client:
-      client.stop();
-    } else {
-      Serial.println("connection failed");
-    }
+    http.end();
   #endif
 
 }

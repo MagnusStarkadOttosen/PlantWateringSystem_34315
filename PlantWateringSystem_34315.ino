@@ -75,7 +75,7 @@ void setup() {
     Serial.println("WiFi connected");
   #endif
   
-  Wire.begin(); 
+  //Wire.begin(); 
   /*
     Snapshot current time before initializing logic.
     This gives logic a sane starting timestamp.
@@ -123,7 +123,7 @@ void loop() {
    /*
     Updates LCD Display
   */
-  updateDisplay(state);
+  //updateDisplay(state);
 
   /*
     Debug print guard.
