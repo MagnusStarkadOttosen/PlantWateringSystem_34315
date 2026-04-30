@@ -73,6 +73,25 @@ static const unsigned long SENSOR_READ_INTERVAL_MS = 10000;
 static const unsigned long SENSOR_POWER_SETTLE_MS = 1000;
 
 /*
+  Soil moisture calibration
+
+  Calibrate later by measuring:
+  - raw value in dry air/dry soil
+  - raw value in wet soil/water
+*/
+static const int SOIL_ANALOG_DRY_VALUE = 1024;
+static const int SOIL_ANALOG_WET_VALUE = 0;
+
+/*
+  Soil moisture logic thresholds
+
+  Lower moisture percentage means drier soil.
+  Different on/off values prevents the pump decision from flickering around 50%.
+*/
+static const int SOIL_MOISTURE_DRY_ON_PCT = 50;
+static const int SOIL_MOISTURE_DRY_OFF_PCT = 60;
+
+/*
   Serial print interval for debugging.
 */
 static const unsigned long SERIAL_PRINT_INTERVAL_MS = 500;

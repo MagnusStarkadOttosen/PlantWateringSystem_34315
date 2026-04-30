@@ -14,6 +14,7 @@
 */
 
 static void updateFanLogic(SystemState& state);
+static void updateSoilMoistureLogic(SystemState& state);
 static void updateWateringLogic(SystemState& state);
 static void applySafetyOverrides(SystemState& state);
 static void updateWebserver(SystemState& state, WiFiClient& client, HTTPClient& http);
@@ -55,6 +56,7 @@ static unsigned long lastWebserverUpdateMs = 0;
 
 void updateLogic(SystemState& state, WiFiClient& client, HTTPClient& http) {
   updateFanLogic(state);
+  updateSoilMoistureLogic(state);
   updateWateringLogic(state);
   applySafetyOverrides(state);
 
@@ -94,6 +96,26 @@ static void updateFanLogic(SystemState& state) {
   if (state.temperatureC <= FAN_TEMP_OFF_C &&
       state.humidityPct <= FAN_HUMIDITY_OFF_PCT) {
     state.fanActive = false;
+  }
+}
+
+/*
+  updateSoilMoistureLogic()
+  -------------------------
+  Uses analog soil moisture percentage as the real dry/wet decision.
+
+  Logic:
+  - become DRY at or below SOIL_MOISTURE_DRY_ON_PCT
+  - become WET again at or above SOIL_MOISTURE_DRY_OFF_PCT
+*/
+static void updateSoilMoistureLogic(SystemState& state) {
+  if (!state.soilDry && state.soilMoisturePct <= SOIL_MOISTURE_DRY_ON_PCT) {
+    state.soilDry = true;
+    return;
+  }
+
+  if (state.soilDry && state.soilMoisturePct >= SOIL_MOISTURE_DRY_OFF_PCT) {
+    state.soilDry = false;
   }
 }
 
@@ -196,6 +218,7 @@ static void generateJSON(StaticJsonDocument<JSON_SIZE>& data, const SystemState&
   data["soilDry"] = state.soilDry;
   data["soilDigitalValue"] = state.soilDigitalValue;
   data["soilAnalogValue"] = state.soilAnalogValue;
+  data["soilMoisturePct"] = state.soilMoisturePct;
 
   data["waterEmpty"] = state.waterEmpty;
   data["waterRawValue"] = state.waterRawValue;
@@ -216,7 +239,7 @@ static void generateJSON(StaticJsonDocument<JSON_SIZE>& data, const SystemState&
   ThingSpeak field mapping:
     1 temperatureC
     2 humidityPct
-    3 soilAnalogValue
+    3 soilMoisturePct
     4 soilDry
     5 waterEmpty
     6 pumpActive
@@ -242,7 +265,7 @@ static void sendToThingspeak(const SystemState& state, WiFiClient& client) {
 
       ThingSpeak.setField(1, state.temperatureC);
       ThingSpeak.setField(2, state.humidityPct);
-      ThingSpeak.setField(3, state.soilAnalogValue);
+      ThingSpeak.setField(3, state.soilMoisturePct);
       ThingSpeak.setField(4, state.soilDry ? 1 : 0);
       ThingSpeak.setField(5, state.waterEmpty ? 1 : 0);
       ThingSpeak.setField(6, state.pumpActive ? 1 : 0);
@@ -253,6 +276,8 @@ static void sendToThingspeak(const SystemState& state, WiFiClient& client) {
         "climateValid=" + String(state.climateValid ? 1 : 0) +
         ",pumpEnabled=" + String(state.pumpEnabled ? 1 : 0) +
         ",pumpLockout=" + String(pumpIsInLockout(state) ? 1 : 0) +
+        ",soilPct=" + String(state.soilMoisturePct) +
+        ",soilRaw=" + String(state.soilAnalogValue) +
         ",soilDig=" + String(state.soilDigitalValue) +
         ",waterRaw=" + String(state.waterRawValue);
 

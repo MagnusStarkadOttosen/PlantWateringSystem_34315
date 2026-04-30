@@ -50,6 +50,18 @@ static const char* yesNo(bool value) {
   return value ? "YES" : "NO ";
 }
 
+static int calculateSoilMoisturePct(int rawValue) {
+  int dryValue = SOIL_ANALOG_DRY_VALUE;
+  int wetValue = SOIL_ANALOG_WET_VALUE;
+
+  if (dryValue == wetValue) {
+    return 0;
+  }
+
+  long pct = ((long)rawValue - dryValue) * 100L / ((long)wetValue - dryValue);
+  return constrain((int)pct, 0, 100);
+}
+
 void setup() {
   Serial.begin(115200);
 
@@ -129,10 +141,10 @@ void loop() {
       soilSensor.update();
       waterLevelSensor.update();
 
-      state.soilDry = soilSensor.isDry();
       state.waterEmpty = waterLevelSensor.isEmpty();
       state.soilDigitalValue = soilSensor.getDigitalValue();
       state.soilAnalogValue = soilSensor.getAnalogValue();
+      state.soilMoisturePct = calculateSoilMoisturePct(state.soilAnalogValue);
       state.waterRawValue = waterLevelSensor.getRawValue();
 
       sensorPower.setOn(false);
@@ -218,6 +230,10 @@ if (state.nowMs - lastClimateReadMs >= CLIMATE_SENSOR_READ_INTERVAL_MS) {
   Serial.print("SoilAna:");
   Serial.print(state.soilAnalogValue);
   Serial.print("  ");
+
+  Serial.print("SoilPct:");
+  Serial.print(state.soilMoisturePct);
+  Serial.print(" %  ");
 
   Serial.print("Temp:");
   if (state.climateValid) {

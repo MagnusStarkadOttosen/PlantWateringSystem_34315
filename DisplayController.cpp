@@ -40,7 +40,8 @@ void updateDisplay(const SystemState& state) {
     display.setCursor(64, 0);
     display.print("SOIL");
     display.setCursor(64, 10);
-    display.print(state.soilDry ? "DRY" : "WET");
+    display.print(state.soilMoisturePct);
+    display.print(" %");
 
     // ===== BOTTOM LEFT =====
     display.setCursor(0, 32);

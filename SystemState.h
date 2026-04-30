@@ -43,6 +43,7 @@ struct SystemState {
   bool soilDry = false;
   int soilDigitalValue = HIGH;
   int soilAnalogValue = 0;
+  int soilMoisturePct = 0;
 
   /*
     Water level sensor
