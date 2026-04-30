@@ -89,7 +89,7 @@ static const unsigned long PUMP_LOCKOUT_MS = 60000;
 /*
   JSON data size
 */
-static const unsigned long JSON_SIZE = 320;
+static const unsigned long JSON_SIZE = 512;
 
 /*
   Webserver update interval  

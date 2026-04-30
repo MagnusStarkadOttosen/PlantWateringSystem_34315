@@ -70,12 +70,14 @@ void setup() {
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     
     while (WiFi.status() != WL_CONNECTED) {
-      if (state.nowMs - lastPrintMs < SERIAL_PRINT_INTERVAL_MS) {
-        return;
+      unsigned long nowMs = millis();
+
+      if (nowMs - lastPrintMs >= SERIAL_PRINT_INTERVAL_MS) {
+        lastPrintMs = nowMs;
+        Serial.print(".");
       }
 
-      lastPrintMs = state.nowMs;
-      Serial.print(".");
+      yield();
     }
 
     Serial.println("");
@@ -128,7 +130,10 @@ void loop() {
       waterLevelSensor.update();
 
       state.soilDry = soilSensor.isDry();
-      state.isEmpty = waterLevelSensor.isEmpty();
+      state.waterEmpty = waterLevelSensor.isEmpty();
+      state.soilDigitalValue = soilSensor.getDigitalValue();
+      state.soilAnalogValue = soilSensor.getAnalogValue();
+      state.waterRawValue = waterLevelSensor.getRawValue();
 
       sensorPower.setOn(false);
       sensorPowerOnPhase = false;
@@ -195,7 +200,11 @@ if (state.nowMs - lastClimateReadMs >= CLIMATE_SENSOR_READ_INTERVAL_MS) {
   Serial.print("  ");
 
   Serial.print("WaterEmpty:");
-  Serial.print(yesNo(state.isEmpty));
+  Serial.print(yesNo(state.waterEmpty));
+  Serial.print("  ");
+
+  Serial.print("WaterRaw:");
+  Serial.print(state.waterRawValue == HIGH ? "HIGH" : "LOW ");
   Serial.print("  ");
 
   Serial.print("Pump:");
@@ -203,11 +212,11 @@ if (state.nowMs - lastClimateReadMs >= CLIMATE_SENSOR_READ_INTERVAL_MS) {
   Serial.print("  ");
 
   Serial.print("SoilDig:");
-  Serial.print(soilSensor.getDigitalValue() == HIGH ? "HIGH" : "LOW ");
+  Serial.print(state.soilDigitalValue == HIGH ? "HIGH" : "LOW ");
   Serial.print("  ");
 
   Serial.print("SoilAna:");
-  Serial.print(soilSensor.getAnalogValue());
+  Serial.print(state.soilAnalogValue);
   Serial.print("  ");
 
   Serial.print("Temp:");

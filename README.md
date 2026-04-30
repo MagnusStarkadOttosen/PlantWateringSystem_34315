@@ -66,38 +66,46 @@ PlantWateringSystem/
 
 All shared data lives in `SystemState`.
 
-Example:
+Current project state:
 
-```
+```cpp
 struct SystemState {
   unsigned long nowMs;
 
-  // Sensor values
-  float soilPercent;
-  bool waterTankLow;
+  // Climate sensor
   float temperatureC;
-  float humidityPercent;
+  float humidityPct;
+  bool climateValid;
+
+  // Soil moisture sensor
+  bool soilDry;
+  int soilDigitalValue;
+  int soilAnalogValue;
+
+  // Water level sensor
+  bool waterEmpty;
+  int waterRawValue;
 
   // Commands from logic
-  bool pumpCommand;
-  bool fanCommand;
+  bool fanActive;
+  bool pumpEnabled;
+  bool pumpActive;
 
-  // Optional feedback
-  bool pumpActualState;
-  bool fanActualState;
+  // Pump timing memory
+  unsigned long pumpStartTime;
+  unsigned long pumpLockoutUntilMs;
 
-  // Logic timing memory (example: fan cycle)
-  bool fanCycleEnabled;
-  bool fanCycleIsOnPhase;
-  unsigned long fanPhaseStartMs;
+  // Network telemetry
+  long wifiRssi;
 };
 ```
 
 ### Rule
 
-* Sensors WRITE values
-* Logic READS and WRITES
+* Sensors WRITE raw and interpreted sensor values
+* Logic READS sensor values and WRITES actuator commands
 * Actuators READ commands only
+* Network/display code READS state only, except RSSI is refreshed before upload
 
 ---
 
@@ -335,6 +343,31 @@ if (state.waterTankLow) {
   state.pumpCommand = false;
 }
 ```
+
+---
+
+# 13. Telemetry
+
+ThingSpeak supports 8 normal fields per channel, so the project uses those fields for the most useful numeric telemetry:
+
+| Field | Value |
+| ----- | ----- |
+| 1 | `temperatureC` |
+| 2 | `humidityPct` |
+| 3 | `soilAnalogValue` |
+| 4 | `soilDry` |
+| 5 | `waterEmpty` |
+| 6 | `pumpActive` |
+| 7 | `fanActive` |
+| 8 | `wifiRssi` |
+
+Extra debug values are sent in the ThingSpeak status text:
+
+```text
+climateValid, pumpEnabled, pumpLockout, soilDig, waterRaw
+```
+
+RSSI means WiFi received signal strength. It is measured in negative dBm. Values around `-50` are good, around `-70` are weak, and around `-80` are bad.
 
 ---
 

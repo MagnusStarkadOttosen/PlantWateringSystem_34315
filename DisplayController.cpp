@@ -52,7 +52,7 @@ void updateDisplay(const SystemState& state) {
     display.setCursor(64, 32);
     display.print("WATER");
     display.setCursor(64, 42);
-    display.print(state.isEmpty ? "EMPTY" : "OK");
+    display.print(state.waterEmpty ? "EMPTY" : "OK");
 
     display.display();
 }
