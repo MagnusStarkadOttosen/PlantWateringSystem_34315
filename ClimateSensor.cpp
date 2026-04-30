@@ -1,6 +1,7 @@
 #include "ClimateSensor.h"
+#include "Config.h"
 
-#define DHTPIN 16
+#define DHTPIN PIN_CLIMATE_SENSOR
 #define DHTTYPE DHT11
 
 DHT dht(DHTPIN, DHTTYPE);

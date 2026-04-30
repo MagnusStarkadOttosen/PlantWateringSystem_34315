@@ -77,6 +77,13 @@ struct SystemState {
   bool pumpEnabled = true;
   uint32_t pumpStartTime = 0;
   bool pumpActive = false;
+
+  /*
+    Climate sensor
+  */
+  float temperatureC = NAN;
+  float humidityPct = NAN;
+  bool climateValid = false;
 };
 
 #endif

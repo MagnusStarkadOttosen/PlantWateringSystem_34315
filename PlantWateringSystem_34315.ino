@@ -7,6 +7,7 @@
 #include "DisplayController.h"
 #include <Wire.h>
 #include "SensorPower.h"
+#include "ClimateSensor.h"
 
 /*
   MAIN APPLICATION
@@ -29,7 +30,7 @@ SensorPower sensorPower(PIN_SOIL_SENSOR_POWER, SOIL_SENSOR_POWER_ACTIVE_HIGH);
 MotorController fan(PIN_FAN, FAN_ACTIVE_HIGH);
 MotorController pump(PIN_PUMP, PUMP_ACTIVE_HIGH);
 SoilMoistureSensor soilSensor(PIN_SOIL_SENSOR, PIN_ANALOG, SOIL_SENSOR_SIGNAL_ACTIVE_LOW);
-WaterLevelSensor waterLevelSensor(PIN_WATER_SENSOR, SOIL_SENSOR_SIGNAL_ACTIVE_LOW);
+WaterLevelSensor waterLevelSensor(PIN_WATER_SENSOR, WATER_SENSOR_SIGNAL_ACTIVE_LOW);
 
 unsigned long lastPrintMs = 0;
 unsigned long loopCounter = 0;
@@ -59,6 +60,7 @@ void setup() {
   sensorPower.begin();
   soilSensor.begin();
   waterLevelSensor.begin();
+  dhtBegin();
 
   initializeLogic(state);
   initDisplay();
@@ -97,6 +99,17 @@ void loop() {
       sensorPowerOnPhase = false;
       lastSensorReadMs = state.nowMs;
     }
+  }
+
+  {
+    float temperatureC = NAN;
+    float humidityPct = NAN;
+
+    dhtRead(temperatureC, humidityPct);
+
+    state.temperatureC = temperatureC;
+    state.humidityPct = humidityPct;
+    state.climateValid = !isnan(temperatureC) && !isnan(humidityPct);
   }
 
   /*
@@ -157,6 +170,24 @@ void loop() {
 
   Serial.print("SoilAna:");
   Serial.print(soilSensor.getAnalogValue());
+  Serial.print("  ");
+
+  Serial.print("Temp:");
+  if (state.climateValid) {
+    Serial.print(state.temperatureC);
+    Serial.print(" C");
+  } else {
+    Serial.print("ERR ");
+  }
+  Serial.print("  ");
+
+  Serial.print("Humidity:");
+  if (state.climateValid) {
+    Serial.print(state.humidityPct);
+    Serial.print(" %");
+  } else {
+    Serial.print("ERR ");
+  }
   Serial.print("  ");
 
   Serial.print("PumpTimer:");
