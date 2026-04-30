@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 #include "SystemState.h"
+#include "ESP8266WiFi.h"
+#include <ESP8266HTTPClient.h>
 
 /*
   Logic layer
@@ -30,6 +32,6 @@ void initializeLogic(SystemState& state);
   - keep orchestration centralized
   - avoid becoming one giant nested block
 */
-void updateLogic(SystemState& state);
+void updateLogic(SystemState& state, WiFiClient& client, HTTPClient& http);
 
 #endif

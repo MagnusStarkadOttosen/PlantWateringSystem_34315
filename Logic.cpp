@@ -1,5 +1,8 @@
 #include "Logic.h"
 #include "Config.h"
+#include "Secrets.h"
+#include "ArduinoJson.h" // ArduinoJson by Benoit Blanchon
+#include "ThingSpeak.h" // Thingspeak by MathWorks
 
 /*
   INTERNAL HELPER FUNCTIONS
@@ -12,6 +15,11 @@
 static void updateFanLogic(SystemState& state);
 static void updateWateringLogic(SystemState& state);
 static void applySafetyOverrides(SystemState& state);
+static void updateWebserver(SystemState& state, WiFiClient& client, HTTPClient& http);
+static void generateJSON(StaticJsonDocument<JSON_SIZE>& data, SystemState& state);
+static void sendToWebserver(char* jsonBuffer[JSON_SIZE], WiFiClient& client);
+static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& client);
+static void sendToRestApi(String serializedJson, WiFiClient& client, HTTPClient& http);
 
 /*
   initializeLogic()
@@ -52,10 +60,21 @@ void initializeLogic(SystemState& state) {
   1. compute normal behavior
   2. apply safety overrides last
 */
-void updateLogic(SystemState& state) {
+static unsigned long lastWebserverUpdateMs = 0;
+
+void updateLogic(SystemState& state, WiFiClient& client, HTTPClient& http) {
   updateFanLogic(state);
   updateWateringLogic(state);
   applySafetyOverrides(state);
+  /*
+    Only update the webserver every 20 seconds
+  */
+  if (state.nowMs - lastWebserverUpdateMs < WEBSERVER_UPDATE_INTERVAL_MS) {
+    return;
+  }
+
+  lastWebserverUpdateMs = state.nowMs;
+  updateWebserver(state, client, http);
 }
 
 /*
@@ -175,4 +194,134 @@ static void applySafetyOverrides(SystemState& state) {
     }
   */
   (void)state;
+}
+
+/*
+  updateWebserver()
+  ----------------
+  Update the webserver with the latest state.
+*/
+static void updateWebserver(SystemState& state, WiFiClient& client, HTTPClient& http) {
+  StaticJsonDocument<JSON_SIZE> data;
+
+  generateJSON(data, state);
+
+  // Don't try to send data if the WiFi isn't connected.
+  if (WiFi.status() != WL_CONNECTED) {
+    return;
+  }
+
+  #if !defined(WEBSERVER_MODE)
+    Serial.println("WEBSERVER_MODE not configured");
+    return;
+  #else
+    if (WEBSERVER_MODE == "THINGSPEAK") {
+      sendToThingspeak(data, client);
+    } else if (WEBSERVER_MODE == "REST_API") {
+      char serializedJson[JSON_SIZE];
+
+      serializeJson(data, serializedJson);
+
+      sendToRestApi(serializedJson, client, http);
+    }
+
+  #endif
+
+}
+
+/*
+  generateJSON()
+  --------------
+  Generate JSON data from the latest state.
+*/
+static void generateJSON(StaticJsonDocument<JSON_SIZE>& data, SystemState& state) {
+  data["fanActive"] = state.fanActive; // false
+  data["fanPhaseStartMs"] = state.fanPhaseStartMs; // 12345
+  data["fanCycleIsOnPhase"] = state.fanCycleIsOnPhase; // false
+  data["fanCycleEnabled"] = state.fanCycleEnabled; // false
+  data["soilDry"] = state.soilDry; // false
+  data["pumpEnabled"] = state.pumpEnabled; // false
+  data["pumpStartTime"] = state.pumpStartTime; // 12345
+  data["pumpActive"] = state.pumpActive; // false
+}
+
+/*
+  sendToThingspeak()
+  --------------
+  Send data to Thingspeak.
+*/
+static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& client) {
+  #if !defined(THINGSPEAK_CHANNEL_ID) || !defined(THINGSPEAK_API_KEY) 
+    Serial.println("Thingspeak not configured");
+    return;
+  #else
+    unsigned long channelID = THINGSPEAK_CHANNEL_ID; // Thingspeak channel
+    const char * myWriteAPIKey = THINGSPEAK_API_KEY; // API key
+    const char* server = "api.thingspeak.com";
+
+      ThingSpeak.begin(client);
+    if (client.connect(server, 80)) {
+      
+      // Measure Signal Strength (RSSI) of Wi-Fi connection
+      long rssi = WiFi.RSSI();
+
+      Serial.print("RSSI: ");
+      Serial.println(rssi); 
+
+
+      ThingSpeak.setField(4,rssi);
+
+      // Fetch values.
+      bool fanActive = data["fanActive"];
+      float fanPhaseStartMs = data["fanPhaseStartMs"];
+      bool fanCycleIsOnPhase = data["fanCycleIsOnPhase"];
+      bool fanCycleEnabled = data["fanCycleEnabled"];
+      bool soilDry = data["soilDry"];
+      bool pumpEnabled = data["pumpEnabled"];
+      float pumpStartTime = data["pumpStartTime"];
+      bool pumpActive = data["pumpActive"];
+
+      // Set thingspeak fields
+      ThingSpeak.setField(1, soilDry);
+      ThingSpeak.setField(2, fanActive);
+      ThingSpeak.setField(3, fanPhaseStartMs);
+      ThingSpeak.setField(4, fanCycleIsOnPhase);
+      ThingSpeak.setField(5, fanCycleEnabled);
+      ThingSpeak.setField(6, pumpEnabled);
+      ThingSpeak.setField(7, pumpStartTime);
+      ThingSpeak.setField(8, pumpActive);
+    
+      // Write to thingspeak
+      ThingSpeak.writeFields(channelID, myWriteAPIKey);
+    }
+    client.stop();
+  #endif
+}
+
+/*
+  sendToRestApi()
+  --------------
+  Send data to a webserver.
+*/
+static void sendToRestApi(String data, WiFiClient& client, HTTPClient& http) {
+  #if !defined(REST_API_SERVER) || !defined(REST_API_PORT)
+    Serial.println("REST_API_SERVER or REST_API_PORT not configured");
+    return;
+  #else
+
+    const String PATH = "/update";
+
+    http.begin(client, String(REST_API_SERVER) + ":" + String(REST_API_PORT) + PATH);// REST_API_SERVER + ':' + REST_API_PORT + PATH);
+
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("Content-Length", String(data.length()));
+
+    int httpResponseCode = http.POST(data);
+
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+
+    http.end();
+  #endif
+
 }

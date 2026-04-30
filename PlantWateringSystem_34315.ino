@@ -1,8 +1,12 @@
 #include "Config.h"
+#include "Secrets.h"
 #include "SystemState.h"
 #include "Logic.h"
 #include "MotorController.h"
 #include "SoilMoistureSensor.h"
+#include "ESP8266WiFi.h"
+#include <ESP8266HTTPClient.h>
+#include <WiFiClient.h>
 #include "WaterLevelSensor.h"
 #include "DisplayController.h"
 #include <Wire.h>
@@ -24,6 +28,8 @@
   If this file starts containing hardware-specific hacks
   or business logic everywhere, the architecture is breaking.
 */
+WiFiClient client;
+HTTPClient http;
 
 SystemState state;
 SensorPower sensorPower(PIN_SOIL_SENSOR_POWER, SOIL_SENSOR_POWER_ACTIVE_HIGH);
@@ -47,6 +53,35 @@ static const char* yesNo(bool value) {
 void setup() {
   Serial.begin(115200);
 
+  Serial.println();
+
+  #if !defined(WIFI_SSID) || !defined(WIFI_PASSWORD)  
+    Serial.println("WiFi credentials missing!");
+
+    Serial.println("Starting without WiFi functionality...");
+
+  #else
+
+    // Connecting to WiFi network
+    Serial.println();
+    Serial.print("Connecting to ");
+    Serial.println(WIFI_SSID);
+    
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    
+    while (WiFi.status() != WL_CONNECTED) {
+      if (state.nowMs - lastPrintMs < SERIAL_PRINT_INTERVAL_MS) {
+        return;
+      }
+
+      lastPrintMs = state.nowMs;
+      Serial.print(".");
+    }
+
+    Serial.println("");
+    Serial.println("WiFi connected");
+  #endif
+  
   Wire.begin(); 
   /*
     Snapshot current time before initializing logic.
@@ -116,7 +151,7 @@ void loop() {
     Update decision logic.
     This writes desired outputs into SystemState.
   */
-  updateLogic(state);
+  updateLogic(state, client, http);
 
   /*
     Apply desired logic output to hardware.
