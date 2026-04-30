@@ -27,43 +27,19 @@ struct SystemState {
   */
   unsigned long nowMs = 0;
 
-  /*
-    Fan command produced by Logic.cpp.
+/*
+  Fan command produced by Logic.cpp.
 
-    This is NOT the hardware state directly.
-    It is the desired logical state:
-    true  => fan should be ON
-    false => fan should be OFF
-  */
-  bool fanActive = false;
+  This is NOT the hardware state directly.
+  It is the desired logical state:
+  true  => fan should be ON
+  false => fan should be OFF
+*/
+bool fanActive = false;
 
-  /*
-    Timing memory for the fan cycle logic.
-    Since the cycle behavior belongs in Logic.cpp,
-    the timing state also belongs here.
-
-    fanPhaseStartMs:
-      remembers when the current ON or OFF phase began
-  */
-  unsigned long fanPhaseStartMs = 0;
-
-  /*
-    Current phase of the repeating pattern.
-
-    true  => currently in ON phase
-    false => currently in OFF phase
-  */
-  bool fanCycleIsOnPhase = false;
-
-  /*
-    Optional master enable.
-    Lets you stop the cycle from main or from future logic.
-  */
-  bool fanCycleEnabled = true;
-
-  /*
-    Soil moisture sensor
-  */
+/*
+  Soil moisture sensor
+*/
   bool soilDry = false;
 
   /*
@@ -71,12 +47,16 @@ struct SystemState {
   */
   bool isEmpty = true;
   
-  /*
-    Pump control
-  */
-  bool pumpEnabled = true;
-  uint32_t pumpStartTime = 0;
-  bool pumpActive = false;
+/*
+  Pump control
+
+  pumpLockoutUntilMs:
+    while nowMs is before this time, the pump may not start again.
+*/
+bool pumpEnabled = true;
+unsigned long pumpStartTime = 0;
+unsigned long pumpLockoutUntilMs = 0;
+bool pumpActive = false;
 
   /*
     Climate sensor

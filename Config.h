@@ -37,12 +37,22 @@ static const bool SOIL_SENSOR_SIGNAL_ACTIVE_LOW = false;
 static const bool WATER_SENSOR_SIGNAL_ACTIVE_LOW = true;
 
 /*
-  For the example fan:
-  ON for 3 seconds
-  OFF for 10 seconds
+  Fan climate thresholds
+
+  Different on/off values prevents the fan from rapidly flickering ON/OFF
+  around one exact temperature or humidity value.
 */
-static const unsigned long FAN_ON_DURATION_MS = 3000;
-static const unsigned long FAN_OFF_DURATION_MS = 10000;
+static const float FAN_TEMP_ON_C = 28.0;
+static const float FAN_TEMP_OFF_C = 25.0;
+static const float FAN_HUMIDITY_ON_PCT = 80.0;
+static const float FAN_HUMIDITY_OFF_PCT = 70.0;
+
+/*
+  Climate sensor timing
+
+  DHT11 sensors should not be read every loop.
+*/
+static const unsigned long CLIMATE_SENSOR_READ_INTERVAL_MS = 2000;
 
 /*
   Soil sensor timing
@@ -60,7 +70,7 @@ static const unsigned long WATER_SENSOR_READ_INTERVAL_MS = 10000;
 static const unsigned long WATER_SENSOR_POWER_SETTLE_MS = 1000;
 
 static const unsigned long SENSOR_READ_INTERVAL_MS = 10000;
-static const unsigned long SENSOR_POWER_SETTLE_MS = 10000;
+static const unsigned long SENSOR_POWER_SETTLE_MS = 1000;
 
 /*
   Serial print interval for debugging.
@@ -69,13 +79,17 @@ static const unsigned long SERIAL_PRINT_INTERVAL_MS = 500;
 
 /*
   Pump settings
+
+  Pump runs briefly, then waits before it is allowed to run again.
+  This gives water time to spread through the soil before re-checking.
 */
 static const unsigned long PUMP_ON_DURATION_MS = 3000;
+static const unsigned long PUMP_LOCKOUT_MS = 60000;
 
 /*
   JSON data size
 */
-static const unsigned long JSON_SIZE = 192;
+static const unsigned long JSON_SIZE = 320;
 
 /*
   Webserver update interval  

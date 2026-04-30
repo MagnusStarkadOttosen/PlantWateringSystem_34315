@@ -31,21 +31,11 @@ static void sendToRestApi(String serializedJson, WiFiClient& client, HTTPClient&
   not hardware setup.
 */
 void initializeLogic(SystemState& state) {
-  /*
-    Fan example cycle starts enabled.
-    Start in ON phase so the example is visible immediately.
-  */
-  state.fanCycleEnabled = true;
-  state.fanCycleIsOnPhase = true;
-  state.fanPhaseStartMs = state.nowMs;
-  state.fanActive = true;
-
-  /*
-    Pump defaults.
-    Doesn't exist yet.
-  */
+  state.fanActive = false;
   state.pumpActive = false;
   state.pumpEnabled = true;
+  state.pumpStartTime = 0;
+  state.pumpLockoutUntilMs = 0;
 }
 
 /*
@@ -82,50 +72,28 @@ void updateLogic(SystemState& state, WiFiClient& client, HTTPClient& http) {
   ----------------
   Handles fan behavior only.
 
-  For now:
-  - ON for FAN_ON_DURATION_MS
-  - OFF for FAN_OFF_DURATION_MS
-  - repeat
-
-  Early returns are safe here because this function owns only fan logic.
+  Fan uses two different temperature/humidity to prevent fluctuation:
+  - turn ON when temperature or humidity is high
+  - stay ON until both are safely low again
 */
 static void updateFanLogic(SystemState& state) {
-  /*
-    GUARD 1:
-    If fan cycling is disabled, fan should be OFF.
-  */
-  if (!state.fanCycleEnabled) {
+  if (!state.climateValid) {
     state.fanActive = false;
     return;
   }
 
-  /*
-    GUARD 2:
-    Stay in ON phase until ON duration expires.
-  */
-  if (state.fanCycleIsOnPhase &&
-      (state.nowMs - state.fanPhaseStartMs < FAN_ON_DURATION_MS)) {
-    state.fanActive = true;
+  if (!state.fanActive) {
+    if (state.temperatureC >= FAN_TEMP_ON_C ||
+        state.humidityPct >= FAN_HUMIDITY_ON_PCT) {
+      state.fanActive = true;
+    }
     return;
   }
 
-  /*
-    GUARD 3:
-    Stay in OFF phase until OFF duration expires.
-  */
-  if (!state.fanCycleIsOnPhase &&
-      (state.nowMs - state.fanPhaseStartMs < FAN_OFF_DURATION_MS)) {
+  if (state.temperatureC <= FAN_TEMP_OFF_C &&
+      state.humidityPct <= FAN_HUMIDITY_OFF_PCT) {
     state.fanActive = false;
-    return;
   }
-
-  /*
-    If we got here, the current phase expired.
-    Toggle phase and restart timer.
-  */
-  state.fanCycleIsOnPhase = !state.fanCycleIsOnPhase;
-  state.fanPhaseStartMs = state.nowMs;
-  state.fanActive = state.fanCycleIsOnPhase;
 }
 
 /*
@@ -133,34 +101,34 @@ static void updateFanLogic(SystemState& state) {
   ---------------------
   Handles pump/watering behavior only.
 
-  Right now this is just a placeholder so the architecture is ready.
+  Pump behavior:
+  - start only when soil is dry, water is available, and lockout is over
+  - run for PUMP_ON_DURATION_MS
+  - then stay locked out for PUMP_LOCKOUT_MS
 */
 static void updateWateringLogic(SystemState& state) {
-  if (!state.pumpEnabled) {
+  if (!state.pumpEnabled || state.isEmpty) {
     state.pumpActive = false;
     return;
-  }
-  
-  if (state.isEmpty) {
-    state.pumpActive = false;
-    return;
-  }
-  
-  if (state.soilDry && !state.pumpActive) {
-    state.pumpActive = true;
-    state.pumpStartTime = state.nowMs;
   }
 
-  if(state.pumpActive) {
+  if (state.pumpActive) {
     if (state.nowMs - state.pumpStartTime >= PUMP_ON_DURATION_MS) {
       state.pumpActive = false;
-    } else {
-      state.pumpActive = true;
+      state.pumpLockoutUntilMs = state.nowMs + PUMP_LOCKOUT_MS;
     }
     return;
   }
 
-  state.pumpActive = false;
+  if (state.nowMs < state.pumpLockoutUntilMs) {
+    state.pumpActive = false;
+    return;
+  }
+
+  if (state.soilDry) {
+    state.pumpActive = true;
+    state.pumpStartTime = state.nowMs;
+  }
 }
 
 /*
@@ -168,32 +136,16 @@ static void updateWateringLogic(SystemState& state) {
   ----------------------
   Final safety pass.
 
-  This function should override normal commands if something unsafe happens.
-
-  WHY LAST:
-  Because safety should have final authority.
-
-  Example future rules:
-  - no pump if tank is empty
-  - no fan if sensor invalid
-  - shut everything down on fault
+  Safety has final authority over normal logic.
 */
 static void applySafetyOverrides(SystemState& state) {
-  /*
-    Placeholder version for now.
-    Add overrides as real state fields become available.
+  if (state.isEmpty) {
+    state.pumpActive = false;
+  }
 
-    Example later:
-
-    if (state.waterTankLow) {
-      state.pumpCommand = false;
-    }
-
-    if (!state.climateValid) {
-      state.fanCommand = false;
-    }
-  */
-  (void)state;
+  if (!state.climateValid) {
+    state.fanActive = false;
+  }
 }
 
 /*
@@ -235,14 +187,16 @@ static void updateWebserver(SystemState& state, WiFiClient& client, HTTPClient& 
   Generate JSON data from the latest state.
 */
 static void generateJSON(StaticJsonDocument<JSON_SIZE>& data, SystemState& state) {
-  data["fanActive"] = state.fanActive; // false
-  data["fanPhaseStartMs"] = state.fanPhaseStartMs; // 12345
-  data["fanCycleIsOnPhase"] = state.fanCycleIsOnPhase; // false
-  data["fanCycleEnabled"] = state.fanCycleEnabled; // false
-  data["soilDry"] = state.soilDry; // false
-  data["pumpEnabled"] = state.pumpEnabled; // false
-  data["pumpStartTime"] = state.pumpStartTime; // 12345
-  data["pumpActive"] = state.pumpActive; // false
+  data["fanActive"] = state.fanActive;
+  data["temperatureC"] = state.temperatureC;
+  data["humidityPct"] = state.humidityPct;
+  data["climateValid"] = state.climateValid;
+  data["soilDry"] = state.soilDry;
+  data["waterEmpty"] = state.isEmpty;
+  data["pumpEnabled"] = state.pumpEnabled;
+  data["pumpStartTime"] = state.pumpStartTime;
+  data["pumpLockoutUntilMs"] = state.pumpLockoutUntilMs;
+  data["pumpActive"] = state.pumpActive;
 }
 
 /*
@@ -271,26 +225,24 @@ static void sendToThingspeak(StaticJsonDocument<JSON_SIZE>& data, WiFiClient& cl
 
       ThingSpeak.setField(4,rssi);
 
-      // Fetch values.
-      bool fanActive = data["fanActive"];
-      float fanPhaseStartMs = data["fanPhaseStartMs"];
-      bool fanCycleIsOnPhase = data["fanCycleIsOnPhase"];
-      bool fanCycleEnabled = data["fanCycleEnabled"];
-      bool soilDry = data["soilDry"];
-      bool pumpEnabled = data["pumpEnabled"];
-      float pumpStartTime = data["pumpStartTime"];
-      bool pumpActive = data["pumpActive"];
+// Fetch values.
+bool fanActive = data["fanActive"];
+float temperatureC = data["temperatureC"];
+float humidityPct = data["humidityPct"];
+bool soilDry = data["soilDry"];
+bool waterEmpty = data["waterEmpty"];
+bool pumpEnabled = data["pumpEnabled"];
+bool pumpActive = data["pumpActive"];
 
-      // Set thingspeak fields
-      ThingSpeak.setField(1, soilDry);
-      ThingSpeak.setField(2, fanActive);
-      ThingSpeak.setField(3, fanPhaseStartMs);
-      ThingSpeak.setField(4, fanCycleIsOnPhase);
-      ThingSpeak.setField(5, fanCycleEnabled);
-      ThingSpeak.setField(6, pumpEnabled);
-      ThingSpeak.setField(7, pumpStartTime);
-      ThingSpeak.setField(8, pumpActive);
-    
+// Set thingspeak fields
+ThingSpeak.setField(1, soilDry);
+ThingSpeak.setField(2, fanActive);
+ThingSpeak.setField(3, temperatureC);
+ThingSpeak.setField(4, humidityPct);
+ThingSpeak.setField(5, waterEmpty);
+ThingSpeak.setField(6, pumpEnabled);
+ThingSpeak.setField(7, pumpActive);
+ThingSpeak.setField(8, rssi);
       // Write to thingspeak
       ThingSpeak.writeFields(channelID, myWriteAPIKey);
     }

@@ -50,9 +50,9 @@ void updateDisplay(const SystemState& state) {
 
     // ===== BOTTOM RIGHT =====
     display.setCursor(64, 32);
-    display.print("CYCLE");
+    display.print("WATER");
     display.setCursor(64, 42);
-    display.print(state.fanCycleEnabled ? "YES" : "NO");
+    display.print(state.isEmpty ? "EMPTY" : "OK");
 
     display.display();
 }

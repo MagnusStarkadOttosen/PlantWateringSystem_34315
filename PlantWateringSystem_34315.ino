@@ -136,16 +136,19 @@ void loop() {
     }
   }
 
-  {
-    float temperatureC = NAN;
-    float humidityPct = NAN;
+static unsigned long lastClimateReadMs = 0;
 
-    dhtRead(temperatureC, humidityPct);
+if (state.nowMs - lastClimateReadMs >= CLIMATE_SENSOR_READ_INTERVAL_MS) {
+  float temperatureC = NAN;
+  float humidityPct = NAN;
 
-    state.temperatureC = temperatureC;
-    state.humidityPct = humidityPct;
-    state.climateValid = !isnan(temperatureC) && !isnan(humidityPct);
-  }
+  dhtRead(temperatureC, humidityPct);
+
+  state.temperatureC = temperatureC;
+  state.humidityPct = humidityPct;
+  state.climateValid = !isnan(temperatureC) && !isnan(humidityPct);
+  lastClimateReadMs = state.nowMs;
+}
 
   /*
     Update decision logic.
